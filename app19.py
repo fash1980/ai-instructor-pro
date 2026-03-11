@@ -278,43 +278,27 @@ def ollama_chat(messages):
         hf_token = st.secrets["HF_API_TOKEN"]
         hf_model = st.secrets["HF_MODEL"]
 
-        prompt = ""
-        for m in messages:
-            role = m.get("role", "user").upper()
-            content = m.get("content", "")
-            prompt += f"{role}: {content}\n"
-        prompt += "ASSISTANT:"
-
-        headers = {
-            "Authorization": f"Bearer {hf_token}",
-            "Content-Type": "application/json",
-        }
-
-        payload = {
-            "inputs": prompt,
-            "parameters": {
-                "max_new_tokens": 300,
-                "temperature": 0.7,
-                "return_full_text": False,
-            },
-            "options": {
-                "wait_for_model": True
-            }
-        }
-
         r = requests.post(
-            f"https://api-inference.huggingface.co/models/{hf_model}",
-            headers=headers,
-            json=payload,
+            "https://router.huggingface.co/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {hf_token}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": hf_model,
+                "messages": messages,
+                "temperature": 0.7,
+                "max_tokens": 300
+            },
             timeout=120,
         )
 
         data = r.json()
 
-        if isinstance(data, list) and len(data) > 0 and "generated_text" in data[0]:
-            return data[0]["generated_text"].strip()
+        if "choices" in data and len(data["choices"]) > 0:
+            return data["choices"][0]["message"]["content"].strip()
 
-        if isinstance(data, dict) and "error" in data:
+        if "error" in data:
             return f"⚠️ API Error: {data['error']}"
 
         return "⚠️ Error: Unexpected API response."
@@ -1083,6 +1067,7 @@ elif st.session_state.step == "DONE":
                 pass
             st.session_state.clear()
             st.rerun()
+
 
 
 
