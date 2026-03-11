@@ -3,4 +3,6 @@ pandas
 requests
 supabase
 extra-streamlit-components
+
 streamlit-float
+streamlit-autorefresh
