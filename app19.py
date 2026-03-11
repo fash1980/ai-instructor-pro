@@ -276,9 +276,8 @@ def floating_timer(time_text, current_part, timer_started):
 def ollama_chat(messages):
     try:
         hf_token = st.secrets["HF_API_TOKEN"]
-        hf_model = st.secrets.get("HF_MODEL", "mistralai/Mistral-7B-Instruct-v0.2")
+        hf_model = st.secrets["HF_MODEL"]
 
-        # Convert chat messages into one prompt
         prompt = ""
         for m in messages:
             role = m.get("role", "user").upper()
@@ -286,20 +285,27 @@ def ollama_chat(messages):
             prompt += f"{role}: {content}\n"
         prompt += "ASSISTANT:"
 
+        headers = {
+            "Authorization": f"Bearer {hf_token}",
+            "Content-Type": "application/json",
+        }
+
+        payload = {
+            "inputs": prompt,
+            "parameters": {
+                "max_new_tokens": 300,
+                "temperature": 0.7,
+                "return_full_text": False,
+            },
+            "options": {
+                "wait_for_model": True
+            }
+        }
+
         r = requests.post(
             f"https://api-inference.huggingface.co/models/{hf_model}",
-            headers={
-                "Authorization": f"Bearer {hf_token}",
-                "Content-Type": "application/json",
-            },
-            json={
-                "inputs": prompt,
-                "parameters": {
-                    "max_new_tokens": 400,
-                    "temperature": 0.7,
-                    "return_full_text": False,
-                },
-            },
+            headers=headers,
+            json=payload,
             timeout=120,
         )
 
@@ -1077,5 +1083,6 @@ elif st.session_state.step == "DONE":
                 pass
             st.session_state.clear()
             st.rerun()
+
 
 
