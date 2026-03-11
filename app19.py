@@ -476,7 +476,7 @@ def auth_gate():
         )
 
         # IMPORTANT: build OAuth URL ONLY after cookie is guaranteed stored
-        redirect_to = "http://localhost:8501"  # change when deployed
+        redirect_to = "https://ai-instructor-pro.streamlit.app"
 
         # STEP A: user clicks button -> we set cookie + store oauth_url + rerun
         if st.button("🌐 Login with Google", use_container_width=True):
@@ -1077,4 +1077,5 @@ elif st.session_state.step == "DONE":
                 pass
             st.session_state.clear()
             st.rerun()
+
 
