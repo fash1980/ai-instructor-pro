@@ -275,14 +275,46 @@ def floating_timer(time_text, current_part, timer_started):
 # ---------------- AI Engines ----------------
 def ollama_chat(messages):
     try:
+        hf_token = st.secrets["HF_API_TOKEN"]
+        hf_model = st.secrets.get("HF_MODEL", "mistralai/Mistral-7B-Instruct-v0.2")
+
+        # Convert chat messages into one prompt
+        prompt = ""
+        for m in messages:
+            role = m.get("role", "user").upper()
+            content = m.get("content", "")
+            prompt += f"{role}: {content}\n"
+        prompt += "ASSISTANT:"
+
         r = requests.post(
-            "http://localhost:11434/api/chat",
-            json={"model": "llama3.2:latest", "messages": messages, "stream": False},
+            f"https://api-inference.huggingface.co/models/{hf_model}",
+            headers={
+                "Authorization": f"Bearer {hf_token}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "inputs": prompt,
+                "parameters": {
+                    "max_new_tokens": 400,
+                    "temperature": 0.7,
+                    "return_full_text": False,
+                },
+            },
             timeout=120,
         )
-        return r.json()["message"]["content"]
-    except Exception:
-        return "⚠️ Error: Ollama not responding."
+
+        data = r.json()
+
+        if isinstance(data, list) and len(data) > 0 and "generated_text" in data[0]:
+            return data[0]["generated_text"].strip()
+
+        if isinstance(data, dict) and "error" in data:
+            return f"⚠️ API Error: {data['error']}"
+
+        return "⚠️ Error: Unexpected API response."
+
+    except Exception as e:
+        return f"⚠️ Error: {str(e)}"
 
 
 def scan_for_highlights(student_text):
@@ -1045,3 +1077,4 @@ elif st.session_state.step == "DONE":
                 pass
             st.session_state.clear()
             st.rerun()
+
