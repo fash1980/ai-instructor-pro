@@ -13,6 +13,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 import extra_streamlit_components as stx
 from streamlit_float import float_init
+from urllib.parse import quote
 
 
 def _b64url(b: bytes) -> str:
@@ -1090,6 +1091,7 @@ elif st.session_state.step == "DONE":
                 pass
             st.session_state.clear()
             st.rerun()
+
 
 
 
