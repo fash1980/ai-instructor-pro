@@ -426,15 +426,21 @@ def scan_tokens_with_hf(student_text):
         [
             {
                 "role": "system",
-                "content": "Return only valid JSON."
+                "content": (
+                    "You are a grammar checker. "
+                    "Return ONLY JSON. "
+                    "Do NOT explain. "
+                    "Do NOT include reasoning. "
+                    "Do NOT include markdown."
+                )
             },
             {
                 "role": "user",
                 "content": prompt
             }
         ],
-        temperature=0.0,
-        max_tokens=500
+        temperature=0,
+        max_tokens=150
     )
 
     st.session_state["debug_raw_highlight"] = raw
@@ -1317,6 +1323,7 @@ elif st.session_state.step == "DONE":
                 pass
             st.session_state.clear()
             st.rerun()
+
 
 
 
