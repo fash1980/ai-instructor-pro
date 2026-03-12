@@ -372,15 +372,6 @@ def tokenize_with_spans(text):
         })
     return tokens
 
-def tokenize_with_spans(text):
-    tokens = []
-    for m in re.finditer(r"\w+|[^\w\s]", text):
-        tokens.append({
-            "token": m.group(0),
-            "start": m.start(),
-            "end": m.end()
-        })
-    return tokens
 
 def build_token_prompt(student_text, tokens):
     numbered_tokens = "\n".join(
@@ -412,7 +403,97 @@ Rules:
 - corrected_text must be the full corrected paragraph
 - Use only indexes from the numbered token list
 """.strip()
+def scan_tokens_with_hf(student_text):
+    tokens = tokenize_with_spans(student_text)
+    prompt = build_token_prompt(student_text, tokens)
 
+    raw = ollama_chat(
+        [
+            {
+                "role": "system",
+                "content": "Return only valid JSON."
+            },
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ],
+        temperature=0.0,
+        max_tokens=500
+    )
+
+    st.session_state["debug_raw_highlight"] = raw
+
+    try:
+        cleaned = raw.strip()
+
+        if cleaned.startswith("⚠️ Error"):
+            st.session_state["debug_parsed_mistakes"] = {}
+            st.session_state["debug_json_error"] = cleaned
+            return {
+                "tokens": tokens,
+                "spelling_token_indexes": [],
+                "grammar_token_ranges": [],
+                "corrected_text": student_text
+            }
+
+        cleaned = re.sub(r"^```json\s*", "", cleaned, flags=re.IGNORECASE)
+        cleaned = re.sub(r"^```\s*", "", cleaned)
+        cleaned = re.sub(r"\s*```$", "", cleaned)
+
+        match = re.search(r"\{.*\}", cleaned, flags=re.DOTALL)
+        if match:
+            cleaned = match.group(0)
+
+        data = json.loads(cleaned)
+
+        spelling_idxs = data.get("spelling_token_indexes", [])
+        grammar_ranges = data.get("grammar_token_ranges", [])
+        corrected_text = data.get("corrected_text", student_text)
+
+        if not isinstance(spelling_idxs, list):
+            spelling_idxs = []
+        if not isinstance(grammar_ranges, list):
+            grammar_ranges = []
+        if not isinstance(corrected_text, str):
+            corrected_text = student_text
+
+        valid_spelling = []
+        for idx in spelling_idxs:
+            if isinstance(idx, int) and 0 <= idx < len(tokens):
+                valid_spelling.append(idx)
+
+        valid_grammar = []
+        for r in grammar_ranges:
+            if (
+                isinstance(r, list)
+                and len(r) == 2
+                and isinstance(r[0], int)
+                and isinstance(r[1], int)
+                and 0 <= r[0] <= r[1] < len(tokens)
+            ):
+                valid_grammar.append(r)
+
+        parsed = {
+            "tokens": tokens,
+            "spelling_token_indexes": valid_spelling,
+            "grammar_token_ranges": valid_grammar,
+            "corrected_text": corrected_text
+        }
+
+        st.session_state["debug_parsed_mistakes"] = parsed
+        st.session_state["debug_json_error"] = "none"
+        return parsed
+
+    except Exception as e:
+        st.session_state["debug_parsed_mistakes"] = {}
+        st.session_state["debug_json_error"] = str(e)
+        return {
+            "tokens": tokens,
+            "spelling_token_indexes": [],
+            "grammar_token_ranges": [],
+            "corrected_text": student_text
+        }
 def render_token_highlighted_block(text, tokens, spelling_token_indexes, grammar_token_ranges):
     char_labels = [None] * len(text)
 
@@ -1217,6 +1298,7 @@ elif st.session_state.step == "DONE":
                 pass
             st.session_state.clear()
             st.rerun()
+
 
 
 
