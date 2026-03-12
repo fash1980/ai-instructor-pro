@@ -893,16 +893,16 @@ elif st.session_state.step == "COLLECT_PART":
                 if st.session_state.strictness == 0:
                     sentence_rule = "You may write the full paragraph for them if needed, with as many sentences as needed."
                 elif st.session_state.strictness == 1:
-                    sentence_rule = "Write example sentences before ending, around 8-10 sentences."
+                    sentence_rule = "Under the heading of Example Sentences, Write around 8-10 example sentences before ending."
                 elif st.session_state.strictness == 2:
-                    sentence_rule = "Write example sentences before ending, Write at most 5-6 sentences."
+                    sentence_rule = "Under the heading of Example Sentences, Write at most 5-6 example sentences before ending."
                 else:
-                    sentence_rule = "Write example sentences before ending, Write at most 2-4 sentences."
+                    sentence_rule = "Under the heading of Example Sentences, Write at most 2-4 example sentences before ending."
                 teaching_prompt = (
                     f"You are an expert English Tutor for school students. "
                     f"The student is writing an essay on '{st.session_state.topic}'. "
-                    f"Explain them in a separate paragraph the main idea or focus of the essay. "
-                    f"Give 3-5 specific points or themes they can mention for this topic under the heading Themes. "
+                    f"If the {current_part} is Introduction then only explain them in a separate paragraph the main idea or focus of the essay. "
+                    f"If the {current_part} is Introduction then only Give 3-5 specific points or themes they can mention for this topic under the heading Themes. "
                     f"They are now writing the {current_part} for a {st.session_state.level} level essay. "
                     f"Explain briefly what a good {current_part} should include in simple school {st.session_state.level} language. "
                     f"Do NOT use the term 'thesis statement'. Instead, say that the last sentence of the introduction "
@@ -1250,6 +1250,7 @@ elif st.session_state.step == "DONE":
                 pass
             st.session_state.clear()
             st.rerun()
+
 
 
 
