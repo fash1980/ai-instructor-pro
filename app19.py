@@ -454,7 +454,55 @@ def parse_ai_tagged_response(raw, student_text, tokens):
         "grammar_token_ranges": grammar_ranges,
         "corrected_text": corrected_text
     }
-    
+def parse_ai_reasoning_fallback(raw, student_text, tokens):
+    spelling_idxs = []
+    grammar_ranges = []
+    corrected_text = student_text
+
+    # --- spelling: catch phrases like "token index 2"
+    for m in re.finditer(r"token index\s+(\d+)", raw, flags=re.IGNORECASE):
+        idx = int(m.group(1))
+        if 0 <= idx < len(tokens) and idx not in spelling_idxs:
+            spelling_idxs.append(idx)
+
+    # --- spelling: also catch phrases like "index 13"
+    for m in re.finditer(r"\bindex\s+(\d+)\b", raw, flags=re.IGNORECASE):
+        idx = int(m.group(1))
+        if 0 <= idx < len(tokens) and idx not in spelling_idxs:
+            spelling_idxs.append(idx)
+
+    # --- grammar: catch phrases like "0-3"
+    for m in re.finditer(r"\b(\d+)\s*-\s*(\d+)\b", raw):
+        s = int(m.group(1))
+        e = int(m.group(2))
+        if 0 <= s <= e < len(tokens):
+            pair = [s, e]
+            if pair not in grammar_ranges:
+                grammar_ranges.append(pair)
+
+    # --- corrected text: try to capture quoted corrected sentence
+    corr_match = re.search(
+        r'Corrected_text\s*[:=]\s*"([^"]+)"',
+        raw,
+        flags=re.IGNORECASE
+    )
+    if corr_match:
+        corrected_text = corr_match.group(1).strip()
+    else:
+        corr_match = re.search(
+            r'corrected paragraph\s*(?:is|:)\s*"([^"]+)"',
+            raw,
+            flags=re.IGNORECASE
+        )
+        if corr_match:
+            corrected_text = corr_match.group(1).strip()
+
+    return {
+        "tokens": tokens,
+        "spelling_token_indexes": spelling_idxs,
+        "grammar_token_ranges": grammar_ranges,
+        "corrected_text": corrected_text
+    }
 def scan_tokens_with_hf(student_text):
     tokens = tokenize_with_spans(student_text)
     prompt = build_token_prompt(student_text, tokens)
@@ -493,6 +541,14 @@ def scan_tokens_with_hf(student_text):
 
         parsed = parse_ai_tagged_response(raw, student_text, tokens)
 
+        # Fallback: if model ignored tagged format, try extracting from reasoning text
+        if (
+            not parsed["spelling_token_indexes"]
+            and not parsed["grammar_token_ranges"]
+            and parsed["corrected_text"] == student_text
+        ):
+            parsed = parse_ai_reasoning_fallback(raw, student_text, tokens)
+        
         st.session_state["debug_parsed_mistakes"] = parsed
         st.session_state["debug_json_error"] = "none"
         return parsed
@@ -760,7 +816,7 @@ with st.sidebar:
     st.markdown("### 🐞 Debug Info")
     st.write("Raw:", st.session_state.get("debug_raw_highlight", "none"))
     st.write("Parsed:", st.session_state.get("debug_parsed_mistakes", {}))
-    st.write("JSON error:", st.session_state.get("debug_json_error", "none"))
+    st.write("Parse status:", st.session_state.get("debug_json_error", "none"))
     st.write("HF full response:", st.session_state.get("debug_hf_full_response", {}))
     
     st.write("Finish reason:", st.session_state.get("debug_finish_reason", "none"))
@@ -1314,6 +1370,7 @@ elif st.session_state.step == "DONE":
                 pass
             st.session_state.clear()
             st.rerun()
+
 
 
 
