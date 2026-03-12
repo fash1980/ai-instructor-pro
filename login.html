@@ -1,21 +1,249 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Login with Google</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Continue with Google | AI Instructor Pro</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: linear-gradient(180deg, #f8faff 0%, #f2f4ff 100%);
+      color: #0f172a;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .wrapper {
+      width: 100%;
+      max-width: 760px;
+    }
+
+    .hero {
+      background:
+        radial-gradient(circle, rgba(255,255,255,0.16) 1px, transparent 1px),
+        linear-gradient(135deg, #6366f1, #9333ea);
+      background-size: 22px 22px, cover;
+      border-radius: 28px;
+      padding: 42px 34px;
+      text-align: center;
+      color: white;
+      box-shadow: 0 24px 60px rgba(99, 102, 241, 0.24);
+    }
+
+    .hero h1 {
+      margin: 0;
+      font-size: 3rem;
+      line-height: 1.1;
+      font-weight: 800;
+      letter-spacing: -1px;
+    }
+
+    .hero p {
+      margin: 14px 0 0;
+      font-size: 1.1rem;
+      opacity: 0.95;
+    }
+
+    .card {
+      margin-top: 22px;
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(10px);
+      border: 1px solid #e5e7eb;
+      border-radius: 24px;
+      padding: 30px 28px;
+      box-shadow: 0 18px 50px rgba(15, 23, 42, 0.08);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #eef2ff;
+      color: #4338ca;
+      border: 1px solid #c7d2fe;
+      border-radius: 999px;
+      padding: 8px 14px;
+      font-size: 0.92rem;
+      font-weight: 700;
+      margin-bottom: 16px;
+    }
+
+    .card h2 {
+      margin: 0 0 10px;
+      font-size: 1.65rem;
+      font-weight: 800;
+      color: #111827;
+    }
+
+    .lead {
+      margin: 0 0 20px;
+      color: #475569;
+      font-size: 1rem;
+      line-height: 1.7;
+    }
+
+    .notice {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 18px;
+      padding: 18px 18px;
+      margin: 18px 0 24px;
+    }
+
+    .notice strong {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 1rem;
+      color: #0f172a;
+    }
+
+    .notice p {
+      margin: 0;
+      color: #475569;
+      line-height: 1.65;
+      font-size: 0.97rem;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-top: 8px;
+    }
+
+    button,
+    a.btn {
+      appearance: none;
+      border: none;
+      text-decoration: none;
+      cursor: pointer;
+      border-radius: 16px;
+      padding: 14px 20px;
+      font-family: inherit;
+      font-size: 1rem;
+      font-weight: 700;
+      transition: 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      min-width: 220px;
+    }
+
+    .primary {
+      background: linear-gradient(135deg, #6366f1, #7c3aed);
+      color: white;
+      box-shadow: 0 14px 30px rgba(99, 102, 241, 0.24);
+    }
+
+    .primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 18px 34px rgba(99, 102, 241, 0.30);
+    }
+
+    .secondary {
+      background: white;
+      color: #0f172a;
+      border: 1px solid #d1d5db;
+    }
+
+    .secondary:hover {
+      background: #f8fafc;
+    }
+
+    .footnote {
+      margin-top: 18px;
+      font-size: 0.9rem;
+      color: #64748b;
+      line-height: 1.6;
+    }
+
+    .status {
+      margin-top: 16px;
+      font-size: 0.95rem;
+      color: #475569;
+    }
+
+    @media (max-width: 640px) {
+      .hero h1 {
+        font-size: 2.2rem;
+      }
+
+      .card {
+        padding: 22px 18px;
+      }
+
+      .actions {
+        flex-direction: column;
+      }
+
+      button,
+      a.btn {
+        width: 100%;
+      }
+    }
+  </style>
 </head>
 <body>
-  <h2>AI Instructor Pro</h2>
-  <button id="googleBtn">Continue with Google</button>
+  <div class="wrapper">
+    <div class="hero">
+      <h1>🎓 AI Instructor Pro</h1>
+      <p>The smartest way to master English essays</p>
+    </div>
+
+    <div class="card">
+      <div class="badge">Google Sign-In</div>
+
+      <h2>Before you continue</h2>
+      <p class="lead">
+        Please confirm that you have already created your account using the
+        <strong>Sign Up</strong> option in AI Instructor Pro.
+      </p>
+
+      <div class="notice">
+        <strong>Are you already registered?</strong>
+        <p>
+          If you have already signed up before, you can continue with Google.
+          If you are new here, please go back and create your account first
+          using the Sign Up form.
+        </p>
+      </div>
+
+      <div class="actions">
+        <button id="googleBtn" class="primary">🌐 Yes, I am registered</button>
+        <a class="btn secondary" href="https://ai-instructor-pro.streamlit.app/">← Go back and Sign Up</a>
+      </div>
+
+      <div class="status" id="statusMsg"></div>
+
+      <div class="footnote">
+        Continuing with Google will link you to your existing registered email address.
+      </div>
+    </div>
+  </div>
 
   <script>
     const SUPABASE_URL = "https://uasvikbxjoxhxcnserhj.supabase.co";
     const SUPABASE_ANON_KEY = "sb_publishable_nsp-0mvfopQyondhh7fWDQ_siHRPtTE";
 
     const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const googleBtn = document.getElementById("googleBtn");
+    const statusMsg = document.getElementById("statusMsg");
 
-    document.getElementById("googleBtn").addEventListener("click", async () => {
+    googleBtn.addEventListener("click", async () => {
+      statusMsg.textContent = "Redirecting to Google...";
+
       const { data, error } = await client.auth.signInWithOAuth({
         provider: "google",
         options: {
@@ -28,6 +256,7 @@
 
       if (error) {
         console.error("OAuth error:", error);
+        statusMsg.textContent = "Something went wrong while starting Google sign-in.";
       }
     });
   </script>
