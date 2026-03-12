@@ -792,11 +792,16 @@ elif st.session_state.step == "COLLECT_PART":
         if current_step_key not in st.session_state:
             with st.spinner(f"Teaching you how to write the {current_part}..."):
                 teaching_prompt = (
-                    f"You are an expert English Tutor. The student is writing an essay on '{st.session_state.topic}'. "
-                    f"They are now at the '{current_part}' stage. "
-                    f"Explain briefly what a good {current_part} should include for a {st.session_state.level} level. "
-                    f"Give 2-3 specific points or themes they should mention for this specific topic. "
-                    f"Do NOT write the paragraph for them. End by saying: 'Now, please write your {current_part}.'"
+                    f"You are an expert English Tutor for school students. "
+                    f"The student is writing an essay on '{st.session_state.topic}'. "
+                    f"They are now writing the INTRODUCTION for a {st.session_state.level} level essay. "
+                    f"Explain briefly what a good introduction should include in simple school-level language. "
+                    f"Do NOT use the term 'thesis statement'. Instead, say that the last sentence of the introduction "
+                    f"should clearly show the main idea or focus of the essay. "
+                    f"Give 2-3 specific points or themes they can mention for this topic. "
+                    f"Do NOT write the paragraph for them. "
+                    f"Keep the guidance clear, student-friendly, and not too academic. "
+                    f"End by saying exactly: 'Now, please write your INTRODUCTION.'"
                 )
                 lesson = ollama_chat([{ "role": "user", "content": teaching_prompt }])
                 st.session_state.chat.append({"role": "ai", "content": lesson})
@@ -1075,6 +1080,7 @@ elif st.session_state.step == "DONE":
                 pass
             st.session_state.clear()
             st.rerun()
+
 
 
 
