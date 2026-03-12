@@ -395,13 +395,16 @@ def make_pkce_pair():
     return verifier, challenge
 
 
+from urllib.parse import quote
+import time
+
 def auth_gate():
     cookie = stx.CookieManager()
 
     if "sb_session" not in st.session_state:
         st.session_state.sb_session = None
     if "oauth_ready" not in st.session_state:
-        st.session_state.oauth_ready = False  # step flag
+        st.session_state.oauth_ready = False
     if "oauth_url" not in st.session_state:
         st.session_state.oauth_url = None
 
@@ -413,21 +416,28 @@ def auth_gate():
 
     if (not st.session_state.sb_session) and code:
         verifier = cookie.get("pkce_verifier")
+
         if not verifier:
-            st.error("Missing PKCE verifier. Please click Google Login again (cookie was not stored).")
+            st.error("Missing PKCE verifier. Please click Google Login again.")
             st.query_params.clear()
             st.session_state.oauth_ready = False
             st.session_state.oauth_url = None
             st.stop()
 
         try:
-            res = supabase_admin.auth.exchange_code_for_session({"auth_code": code, "code_verifier": verifier})
+            res = supabase_admin.auth.exchange_code_for_session(
+                {
+                    "auth_code": code,
+                    "code_verifier": verifier
+                }
+            )
+
             oauth_session = res.session
             if not oauth_session:
-                st.error("Supabase did not return a session. Check redirect URLs + PKCE.")
+                st.error("Supabase did not return a session. Check redirect URLs and Google provider setup.")
                 st.stop()
 
-            # OPTIONAL: create profile if missing
+            # Create profile if missing
             prof = (
                 supabase_admin.table("profiles")
                 .select("id")
@@ -435,6 +445,7 @@ def auth_gate():
                 .limit(1)
                 .execute()
             )
+
             if not prof.data:
                 supabase_admin.table("profiles").insert(
                     {
@@ -450,6 +461,8 @@ def auth_gate():
 
             cookie.delete("pkce_verifier")
             st.query_params.clear()
+            st.session_state.oauth_ready = False
+            st.session_state.oauth_url = None
             st.rerun()
 
         except Exception as e:
@@ -465,41 +478,45 @@ def auth_gate():
             unsafe_allow_html=True,
         )
 
-        # IMPORTANT: build OAuth URL ONLY after cookie is guaranteed stored
-        redirect_to = "https://ai-instructor-pro.streamlit.app"
+        app_url = "https://ai-instructor-pro.streamlit.app"
+        redirect_to = quote(app_url, safe="")
 
-        # STEP A: user clicks button -> we set cookie + store oauth_url + rerun
+        # Step A: user clicks button
         if st.button("🌐 Login with Google", use_container_width=True):
             verifier, challenge = make_pkce_pair()
-            cookie.set("pkce_verifier", verifier)  # stored on next response
+
+            cookie.set("pkce_verifier", verifier)
+
+            # small delay helps cookie persist on Streamlit Cloud
+            time.sleep(0.5)
 
             oauth_url = (
-                f"{SUPABASE_URL}/auth/v1/authorize?"
-                "provider=google&"
-                f"redirect_to={redirect_to}&"
-                "response_type=code&"
-                "flow_type=pkce&"
-                f"code_challenge={challenge}&"
-                "code_challenge_method=s256"
+                f"{SUPABASE_URL}/auth/v1/authorize"
+                f"?provider=google"
+                f"&redirect_to={redirect_to}"
+                f"&response_type=code"
+                f"&flow_type=pkce"
+                f"&code_challenge={challenge}"
+                f"&code_challenge_method=s256"
             )
 
             st.session_state.oauth_url = oauth_url
             st.session_state.oauth_ready = True
             st.rerun()
 
-        # STEP B: after rerun, cookie is now written -> do redirect safely via JS
+        # Step B: redirect after rerun
         if st.session_state.oauth_ready and st.session_state.oauth_url:
             components.html(
                 f"""
                 <script>
-                  window.location.href = "{st.session_state.oauth_url}";
+                    window.top.location.href = "{st.session_state.oauth_url}";
                 </script>
                 """,
                 height=0,
             )
             st.stop()
 
-        # ---- Your Email Sign In / Sign Up (restored) ----
+        # ---- Email Sign In / Sign Up ----
         with st.expander("🔐 User Sign In / Sign Up"):
             tab_login, tab_signup = st.tabs(["Sign In", "Sign Up"])
 
@@ -508,7 +525,9 @@ def auth_gate():
                 pw = st.text_input("Password", type="password", key="login_pw")
                 if st.button("Sign In", use_container_width=True):
                     try:
-                        res = supabase_admin.auth.sign_in_with_password({"email": email, "password": pw})
+                        res = supabase_admin.auth.sign_in_with_password(
+                            {"email": email, "password": pw}
+                        )
                         st.session_state.sb_session = res.session
                         st.rerun()
                     except Exception:
@@ -518,7 +537,9 @@ def auth_gate():
                 reg_name = st.text_input("Full Name", placeholder="Enter your name")
                 reg_age = st.number_input("Age", min_value=5, max_value=100, value=15)
                 reg_lvl = st.selectbox(
-                    "Education Level", ["Primary", "Secondary", "Higher Secondary"], key="reg_lvl_form"
+                    "Education Level",
+                    ["Primary", "Secondary", "Higher Secondary"],
+                    key="reg_lvl_form"
                 )
                 reg_email = st.text_input("Email", key="reg_email")
                 reg_pw = st.text_input("Password", type="password", key="reg_pw")
@@ -526,7 +547,9 @@ def auth_gate():
                 if st.button("Create Account", use_container_width=True):
                     if reg_name and reg_email and reg_pw:
                         try:
-                            auth_res = supabase_admin.auth.sign_up({"email": reg_email, "password": reg_pw})
+                            auth_res = supabase_admin.auth.sign_up(
+                                {"email": reg_email, "password": reg_pw}
+                            )
                             if auth_res.user:
                                 supabase_admin.table("profiles").upsert(
                                     {
@@ -1067,6 +1090,7 @@ elif st.session_state.step == "DONE":
                 pass
             st.session_state.clear()
             st.rerun()
+
 
 
 
