@@ -945,7 +945,8 @@ elif st.session_state.step == "COLLECT_PART":
         if st.session_state.is_processing and st.session_state.pending_text is not None:
             student_text = st.session_state.pending_text
             late = remaining <= 0
-
+            mistakes = scan_for_highlights(student_text)
+            st.write("DEBUG mistakes:", mistakes)
             with st.status("Tutor is reviewing your work...", expanded=True) as status:
                 st.write("🔍 Scanning for mistakes...")
                 mistakes = scan_for_highlights(student_text)
@@ -1149,6 +1150,7 @@ elif st.session_state.step == "DONE":
                 pass
             st.session_state.clear()
             st.rerun()
+
 
 
 
