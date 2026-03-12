@@ -424,13 +424,16 @@ def parse_marked_response(raw, student_text):
 
 
 def render_marked_highlighted_block(marked_text):
-    # protect HTML first
     safe = html.escape(marked_text)
 
-    # restore our custom tags as HTML spans
+    # accept both [[S]] and [[S]
     safe = safe.replace("[[S]]", '<span class="hl_spell">')
+    safe = safe.replace("[[S]", '<span class="hl_spell">')
     safe = safe.replace("[[/S]]", "</span>")
+
+    # accept both [[G]] and [[G]
     safe = safe.replace("[[G]]", '<span class="hl_gram">')
+    safe = safe.replace("[[G]", '<span class="hl_gram">')
     safe = safe.replace("[[/G]]", "</span>")
 
     return f"""
@@ -1246,6 +1249,7 @@ elif st.session_state.step == "DONE":
                 pass
             st.session_state.clear()
             st.rerun()
+
 
 
 
