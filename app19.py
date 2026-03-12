@@ -485,11 +485,7 @@ def auth_gate():
         # Step A: user clicks button
         if st.button("🌐 Login with Google", use_container_width=True):
             verifier, challenge = make_pkce_pair()
-
             cookie.set("pkce_verifier", verifier)
-
-            # small delay helps cookie persist on Streamlit Cloud
-            time.sleep(0.5)
 
             oauth_url = (
                 f"{SUPABASE_URL}/auth/v1/authorize"
@@ -504,6 +500,11 @@ def auth_gate():
             st.session_state.oauth_url = oauth_url
             st.session_state.oauth_ready = True
             st.rerun()
+
+        if st.session_state.oauth_ready and st.session_state.oauth_url:
+            st.link_button("Continue with Google", st.session_state.oauth_url, use_container_width=True)
+            st.info("If automatic redirect does not happen, click this button.")
+            st.stop()
 
         # Step B: redirect after rerun
         if st.session_state.oauth_ready and st.session_state.oauth_url:
@@ -1090,6 +1091,7 @@ elif st.session_state.step == "DONE":
                 pass
             st.session_state.clear()
             st.rerun()
+
 
 
 
