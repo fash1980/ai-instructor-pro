@@ -419,7 +419,19 @@ def auth_gate():
     
             user = user_res.user
             google_email = user.email
-    
+
+
+            google_email = (user.email or "").strip().lower()
+            st.write("Google email from token:", google_email)
+            
+            prof = (
+                supabase_admin.table("profiles")
+                .select("id, email, full_name")
+                .eq("email", google_email)
+                .execute()
+            )
+            
+            st.write("Matched profiles:", prof.data)
             if not google_email:
                 st.error("Google account email not found.")
                 st.stop()
@@ -1037,6 +1049,7 @@ elif st.session_state.step == "DONE":
                 pass
             st.session_state.clear()
             st.rerun()
+
 
 
 
