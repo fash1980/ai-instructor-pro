@@ -469,6 +469,12 @@ def scan_tokens_with_hf(student_text):
                     "No explanation.\n"
                     "No reasoning.\n"
                     "No markdown."
+                    "Tag EVERY mistake in MARKED.\n"
+                    "Use [[S]]...[[/S]] for spelling only.\n"
+                    "Use [[G]]...[[/G]] for grammar only.\n"
+                    "Do not miss any error.\n"
+                    "Do not explain.\n"
+                    "Do not add markdown."
                 )
             },
             {
@@ -1255,6 +1261,7 @@ elif st.session_state.step == "DONE":
                 pass
             st.session_state.clear()
             st.rerun()
+
 
 
 
