@@ -396,7 +396,14 @@ def make_pkce_pair():
 from urllib.parse import quote
 import time
 
-
+def auth_debug(label, value=None):
+    if DEBUG_AUTH:
+        import streamlit as st
+        with st.expander(f"🔎 AUTH DEBUG — {label}", expanded=True):
+            if value is not None:
+                st.code(str(value))
+            else:
+                st.write("✓ reached")
 def auth_gate():
 
     auth_debug("AUTH GATE STARTED")
@@ -1157,6 +1164,7 @@ elif st.session_state.step == "DONE":
                 pass
             st.session_state.clear()
             st.rerun()
+
 
 
 
