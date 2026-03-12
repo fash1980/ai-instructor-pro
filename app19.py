@@ -832,6 +832,7 @@ unsafe_allow_html=True
 if st.session_state.step == "ASK_TOPIC":
     topic_in = st.text_input("Enter your essay topic:", placeholder="e.g. Write an essay on 'Water Conservation'")
     if st.button("Start My Class"):
+        st.session_state.done_celebrated = False
         topic = detect_topic(topic_in)
         st.session_state.topic = topic
 
@@ -1273,6 +1274,7 @@ elif st.session_state.step == "DONE":
                 pass
             st.session_state.clear()
             st.rerun()
+
 
 
 
