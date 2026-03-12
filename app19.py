@@ -713,7 +713,7 @@ with st.sidebar:
     #st.write("Parse status:", st.session_state.get("debug_json_error", "none"))
     #st.write("HF full response:", st.session_state.get("debug_hf_full_response", {}))
     
-    st.write("Finish reason:", st.session_state.get("debug_finish_reason", "none"))
+    #st.write("Finish reason:", st.session_state.get("debug_finish_reason", "none"))
     #st.write("Message:", st.session_state.get("debug_message", {}))
     if st.session_state.debug_last:
         st.json(st.session_state.debug_last)
@@ -1266,6 +1266,7 @@ elif st.session_state.step == "DONE":
                 pass
             st.session_state.clear()
             st.rerun()
+
 
 
 
