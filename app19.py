@@ -459,19 +459,25 @@ def parse_ai_reasoning_fallback(raw, student_text, tokens):
     grammar_ranges = []
     corrected_text = student_text
 
-    # --- spelling: catch phrases like "token index 2"
-    for m in re.finditer(r"token index\s+(\d+)", raw, flags=re.IGNORECASE):
+    # 1) token index 2 / index 2
+    for m in re.finditer(r"(?:token\s+index|index)\s+(\d+)", raw, flags=re.IGNORECASE):
         idx = int(m.group(1))
         if 0 <= idx < len(tokens) and idx not in spelling_idxs:
             spelling_idxs.append(idx)
 
-    # --- spelling: also catch phrases like "index 13"
-    for m in re.finditer(r"\bindex\s+(\d+)\b", raw, flags=re.IGNORECASE):
+    # 2) patterns like: 2 Elctronic (misspelled ...)
+    for m in re.finditer(r"\b(\d+)\s+([A-Za-z']+)\s*\((?:misspelled|wrong spelling|incorrect spelling)", raw, flags=re.IGNORECASE):
         idx = int(m.group(1))
         if 0 <= idx < len(tokens) and idx not in spelling_idxs:
             spelling_idxs.append(idx)
 
-    # --- grammar: catch phrases like "0-3"
+    # 3) patterns like: token 2 is misspelled
+    for m in re.finditer(r"\btoken\s+(\d+)\b.*?\bmisspell", raw, flags=re.IGNORECASE):
+        idx = int(m.group(1))
+        if 0 <= idx < len(tokens) and idx not in spelling_idxs:
+            spelling_idxs.append(idx)
+
+    # 4) grammar ranges like 0-3
     for m in re.finditer(r"\b(\d+)\s*-\s*(\d+)\b", raw):
         s = int(m.group(1))
         e = int(m.group(2))
@@ -480,22 +486,22 @@ def parse_ai_reasoning_fallback(raw, student_text, tokens):
             if pair not in grammar_ranges:
                 grammar_ranges.append(pair)
 
-    # --- corrected text: try to capture quoted corrected sentence
+    # 5) corrected text in quotes after clues
     corr_match = re.search(
-        r'Corrected_text\s*[:=]\s*"([^"]+)"',
+        r'(?:CORRECTED|Corrections?|corrected paragraph)\s*[:=]?\s*"([^"]+)"',
         raw,
         flags=re.IGNORECASE
     )
     if corr_match:
         corrected_text = corr_match.group(1).strip()
-    else:
-        corr_match = re.search(
-            r'corrected paragraph\s*(?:is|:)\s*"([^"]+)"',
-            raw,
-            flags=re.IGNORECASE
-        )
-        if corr_match:
-            corrected_text = corr_match.group(1).strip()
+
+    # 6) extra smart fallback:
+    # if misspelled words are explicitly named in prose, map them back to tokens
+    for i, tok in enumerate(tokens):
+        tok_text = tok["token"]
+        if re.search(rf'\b{re.escape(tok_text)}\b.*?\bmisspell', raw, flags=re.IGNORECASE):
+            if i not in spelling_idxs:
+                spelling_idxs.append(i)
 
     return {
         "tokens": tokens,
@@ -1370,6 +1376,7 @@ elif st.session_state.step == "DONE":
                 pass
             st.session_state.clear()
             st.rerun()
+
 
 
 
