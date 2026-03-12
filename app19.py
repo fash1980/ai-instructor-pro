@@ -378,7 +378,124 @@ def ollama_chat(messages, temperature=0.7, max_tokens=300):
         return f"⚠️ Error: {str(e)}"
 
 
+def build_markup_prompt(student_text):
+    return f"""
+Return exactly 2 lines only.
 
+Line 1 must start with:
+MARKED:
+
+Line 2 must start with:
+CORRECTED:
+
+Rules:
+- In MARKED, keep the student's original paragraph exactly the same, only add tags
+- Use [[S]]...[[/S]] for spelling mistakes
+- Use [[G]]...[[/G]] for grammar mistakes
+- For grammar, tag the full wrong phrase when possible
+- CORRECTED must be the fully corrected paragraph with no tags
+- No explanation
+- No reasoning
+- No bullets
+- No markdown
+
+Paragraph:
+{student_text}
+""".strip()
+
+
+def parse_marked_response(raw, student_text):
+    marked_text = student_text
+    corrected_text = student_text
+
+    lines = [line.strip() for line in raw.splitlines() if line.strip()]
+
+    for line in lines:
+        upper = line.upper()
+        if upper.startswith("MARKED:"):
+            marked_text = line.split(":", 1)[1].strip()
+        elif upper.startswith("CORRECTED:"):
+            corrected_text = line.split(":", 1)[1].strip()
+
+    return {
+        "marked_text": marked_text,
+        "corrected_text": corrected_text
+    }
+
+
+def render_marked_highlighted_block(marked_text):
+    # protect HTML first
+    safe = html.escape(marked_text)
+
+    # restore our custom tags as HTML spans
+    safe = safe.replace("[[S]]", '<span class="hl_spell">')
+    safe = safe.replace("[[/S]]", "</span>")
+    safe = safe.replace("[[G]]", '<span class="hl_gram">')
+    safe = safe.replace("[[/G]]", "</span>")
+
+    return f"""
+<div class='msg-ai'>
+  <div class='small'><b>Feedback:</b>
+    <span style='color:#f97316'>Orange=Spelling</span>,
+    <span style='color:#eab308'>Yellow=Grammar</span>
+  </div>
+  <div style='background:white; padding:12px; border-radius:10px; border:1px solid #e2e8f0; margin-top:8px; white-space:pre-wrap;'>
+    {safe}
+  </div>
+</div>
+"""
+
+
+def scan_tokens_with_hf(student_text):
+    prompt = build_markup_prompt(student_text)
+
+    raw = ollama_chat(
+        [
+            {
+                "role": "system",
+                "content": (
+                    "Return exactly 2 lines only.\n"
+                    "MARKED: ...\n"
+                    "CORRECTED: ...\n"
+                    "No analysis.\n"
+                    "No explanation.\n"
+                    "No reasoning.\n"
+                    "No markdown."
+                )
+            },
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ],
+        temperature=0.0,
+        max_tokens=180
+    )
+
+    st.session_state["debug_raw_highlight"] = raw
+
+    try:
+        if raw.strip().startswith("⚠️ Error"):
+            st.session_state["debug_parsed_mistakes"] = {}
+            st.session_state["debug_json_error"] = raw
+            return {
+                "marked_text": student_text,
+                "corrected_text": student_text
+            }
+
+        parsed = parse_marked_response(raw, student_text)
+
+        st.session_state["debug_parsed_mistakes"] = parsed
+        st.session_state["debug_json_error"] = "none"
+        return parsed
+
+    except Exception as e:
+        st.session_state["debug_parsed_mistakes"] = {}
+        st.session_state["debug_json_error"] = str(e)
+        return {
+            "marked_text": student_text,
+            "corrected_text": student_text
+        }
 
 # ---------------- Auth Logic ----------------
 
@@ -1128,6 +1245,7 @@ elif st.session_state.step == "DONE":
                 pass
             st.session_state.clear()
             st.rerun()
+
 
 
 
