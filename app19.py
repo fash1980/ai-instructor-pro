@@ -390,15 +390,20 @@ CORRECTED:
 
 Rules:
 - In MARKED, keep the student's original paragraph exactly the same, only add tags
+- Every wrong word or wrong phrase must be tagged
+- Do not leave any mistake untagged
 - Use [[S]]...[[/S]] for spelling mistakes
 - Use [[G]]...[[/G]] for grammar mistakes
+- Use [[S]]wrong_word[[/S]] only for spelling mistakes
+- Use [[G]]wrong_phrase[[/G]] only for grammar mistakes
+- A misspelled word is NEVER grammar
 - For grammar, tag the full wrong phrase when possible
 - CORRECTED must be the fully corrected paragraph with no tags
 - No explanation
 - No reasoning
 - No bullets
 - No markdown
-
+- No headings
 Paragraph:
 {student_text}
 """.strip()
@@ -1250,6 +1255,7 @@ elif st.session_state.step == "DONE":
                 pass
             st.session_state.clear()
             st.rerun()
+
 
 
 
