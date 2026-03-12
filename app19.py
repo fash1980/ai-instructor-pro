@@ -264,9 +264,9 @@ def detect_topic(text):
 
 def part_word_targets(level, part):
     targets = {
-        "Primary": {"INTRO": (10, 20), "BODY": (10, 20), "CONCL": (10, 20)},
-        "Secondary": {"INTRO": (10, 20), "BODY": (10, 20), "CONCL": (10, 20)},
-        "Higher Secondary": {"INTRO": (10, 20), "BODY": (10, 20), "CONCL": (10, 20)},
+        "Primary": {"INTRO": (15, 20), "BODY": (15, 20), "CONCL": (15, 20)},
+        "Secondary": {"INTRO": (15, 20), "BODY": (15, 20), "CONCL": (15, 20)},
+        "Higher Secondary": {"INTRO": (15, 20), "BODY": (15, 20), "CONCL": (15, 20)},
     }
     lvl = targets.get(level, targets["Primary"])
     if "INTRODUCTION" in part:
@@ -1274,6 +1274,7 @@ elif st.session_state.step == "DONE":
                 pass
             st.session_state.clear()
             st.rerun()
+
 
 
 
