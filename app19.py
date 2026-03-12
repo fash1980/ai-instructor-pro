@@ -1148,7 +1148,7 @@ elif st.session_state.step == "DONE":
 
             low = s.lower()
             re.sub(r"(?im)^\s*here('?s)?\s+a?\s*corrected\s+version\s+of.*?:\s*$", "", low)
-            re.sub(r"(?im)^\s*here\s+is\s+the\s+corrected.*?:\s*$", "", low)
+            low = re.sub(r"(?im)^\s*here\s+is\s+the\s+corrected.*?:\s*$", "", low)
             re.sub(r"(?im)^\s*here('?s)?\s+the\s+corrected\s+paragraph\s*:?\s*$", "", low)
             re.sub(r"(?im)^\s*(introduction|conclusion|body\s*\d+)\s*:\s*$", "", low)
             # ---- Remove meta / instruction headers ----
@@ -1261,6 +1261,7 @@ elif st.session_state.step == "DONE":
                 pass
             st.session_state.clear()
             st.rerun()
+
 
 
 
