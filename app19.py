@@ -364,6 +364,9 @@ TEXT:
 
     raw = ollama_chat([{"role": "user", "content": prompt}])
 
+    # DEBUG
+    st.write("RAW highlight response:", raw)
+
     try:
         data = json.loads(raw)
         mistakes = []
@@ -378,10 +381,12 @@ TEXT:
                     "type": mtype,
                     "fix": fix
                 })
+
+        st.write("PARSED mistakes:", mistakes)
         return mistakes
 
-    except Exception:
-        # fallback: return empty instead of crashing
+    except Exception as e:
+        st.write("JSON parse error:", str(e))
         return []
 
 
@@ -1150,6 +1155,7 @@ elif st.session_state.step == "DONE":
                 pass
             st.session_state.clear()
             st.rerun()
+
 
 
 
