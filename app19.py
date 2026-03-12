@@ -841,7 +841,7 @@ elif st.session_state.step == "COLLECT_PART":
                 teaching_prompt = (
                     f"You are an expert English Tutor for school students. "
                     f"The student is writing an essay on '{st.session_state.topic}'. "
-                    f"They are now writing the INTRODUCTION for a {st.session_state.level} level essay. "
+                    f"They are now writing the {current_part} for a {st.session_state.level} level essay. "
                     f"Explain briefly what a good introduction should include in simple school-level language. "
                     f"Do NOT use the term 'thesis statement'. Instead, say that the last sentence of the introduction "
                     f"should clearly show the main idea or focus of the essay. "
@@ -1188,6 +1188,7 @@ elif st.session_state.step == "DONE":
                 pass
             st.session_state.clear()
             st.rerun()
+
 
 
 
