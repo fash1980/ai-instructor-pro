@@ -396,9 +396,16 @@ def make_pkce_pair():
 from urllib.parse import quote
 import time
 
+
 def auth_gate():
+
+    auth_debug("AUTH GATE STARTED")
+
     if "sb_session" not in st.session_state:
         st.session_state.sb_session = None
+
+    auth_debug("Initial session_state.sb_session",
+               st.session_state.get("sb_session"))
 
     # --- Read query params ---
     params = st.query_params
@@ -410,8 +417,14 @@ def auth_gate():
     if isinstance(pv, list):
         pv = pv[0] if pv else None
 
-    # --- If user returned from Google with code but no pv, recover it from localStorage ---
+    auth_debug("Query Params", dict(params))
+    auth_debug("OAuth code", code)
+    auth_debug("PKCE pv", pv)
+
+    # --- If user returned from Google with code but no pv, recover it ---
     if code and not pv:
+        auth_debug("PKCE verifier missing — attempting recovery")
+
         components.html(
             """
             <script>
@@ -431,18 +444,28 @@ def auth_gate():
             """,
             height=0,
         )
+
         st.info("Completing Google sign-in...")
         st.stop()
 
     # --- Handle OAuth callback ---
     if (not st.session_state.sb_session) and code:
+
+        auth_debug("ENTERING OAUTH CALLBACK")
+
         verifier = pv
+        auth_debug("Verifier received", verifier)
 
         if not verifier:
+            auth_debug("ERROR — Missing verifier")
             st.error("Missing PKCE verifier after Google callback.")
             st.stop()
 
         try:
+            auth_debug("Calling exchange_code_for_session")
+            auth_debug("Auth Code Length", len(code) if code else 0)
+            auth_debug("Verifier Length", len(verifier) if verifier else 0)
+
             res = supabase_admin.auth.exchange_code_for_session(
                 {
                     "auth_code": code,
@@ -450,12 +473,22 @@ def auth_gate():
                 }
             )
 
+            auth_debug("Exchange response object", res)
+
             oauth_session = res.session
+            auth_debug("OAuth session returned", oauth_session)
+
             if not oauth_session:
-                st.error("Supabase did not return a session. Check redirect URLs and Google provider setup.")
+                auth_debug("NO SESSION RETURNED FROM SUPABASE", res)
+                st.error(
+                    "Supabase did not return a session. Check redirect URLs and Google provider setup."
+                )
                 st.stop()
 
-            # Create profile if missing
+            # --- Create profile if missing ---
+            auth_debug("Checking profile for user",
+                       oauth_session.user.id)
+
             prof = (
                 supabase_admin.table("profiles")
                 .select("id")
@@ -468,16 +501,21 @@ def auth_gate():
                 supabase_admin.table("profiles").insert(
                     {
                         "id": oauth_session.user.id,
-                        "full_name": oauth_session.user.user_metadata.get("full_name", "Google Learner"),
+                        "full_name": oauth_session.user.user_metadata.get(
+                            "full_name", "Google Learner"
+                        ),
                         "email": oauth_session.user.email,
                         "age": 15,
                         "education_level": "Secondary",
                     }
                 ).execute()
 
-            st.session_state.sb_session = oauth_session
+                auth_debug("Profile created")
 
-            # Remove verifier from browser storage after success
+            st.session_state.sb_session = oauth_session
+            auth_debug("LOGIN SUCCESS — SESSION SAVED")
+
+            # Remove verifier
             components.html(
                 """
                 <script>
@@ -487,16 +525,18 @@ def auth_gate():
                 height=0,
             )
 
-            # Clear URL params so refresh does not re-use old code
+            # Clear URL params
             st.query_params.clear()
             st.rerun()
 
         except Exception as e:
+            auth_debug("EXCEPTION DURING AUTH", str(e))
             st.error(f"Authentication failed: {e}")
             st.stop()
 
     # --- If not logged in, show login UI ---
     if not st.session_state.sb_session:
+
         st.markdown(
             '<div class="hero-container"><h1 style="margin:0;">🎓 AI Instructor Pro</h1>'
             '<p style="opacity:0.9;">The smartest way to master English essays</p></div>',
@@ -508,7 +548,13 @@ def auth_gate():
 
         # --- Google login ---
         if st.button("🌐 Login with Google", use_container_width=True):
+
+            auth_debug("Google Login Button Clicked")
+
             verifier, challenge = make_pkce_pair()
+
+            auth_debug("Generated PKCE verifier", verifier)
+            auth_debug("Generated PKCE challenge", challenge)
 
             oauth_url = (
                 f"{SUPABASE_URL}/auth/v1/authorize"
@@ -519,6 +565,8 @@ def auth_gate():
                 f"&code_challenge={challenge}"
                 f"&code_challenge_method=s256"
             )
+
+            auth_debug("OAuth URL", oauth_url)
 
             components.html(
                 f"""
@@ -538,6 +586,7 @@ def auth_gate():
             with tab_login:
                 email = st.text_input("Email", key="login_email")
                 pw = st.text_input("Password", type="password", key="login_pw")
+
                 if st.button("Sign In", use_container_width=True):
                     try:
                         res = supabase_admin.auth.sign_in_with_password(
@@ -554,7 +603,7 @@ def auth_gate():
                 reg_lvl = st.selectbox(
                     "Education Level",
                     ["Primary", "Secondary", "Higher Secondary"],
-                    key="reg_lvl_form"
+                    key="reg_lvl_form",
                 )
                 reg_email = st.text_input("Email", key="reg_email")
                 reg_pw = st.text_input("Password", type="password", key="reg_pw")
@@ -565,6 +614,7 @@ def auth_gate():
                             auth_res = supabase_admin.auth.sign_up(
                                 {"email": reg_email, "password": reg_pw}
                             )
+
                             if auth_res.user:
                                 supabase_admin.table("profiles").upsert(
                                     {
@@ -575,7 +625,9 @@ def auth_gate():
                                         "education_level": reg_lvl,
                                     }
                                 ).execute()
+
                                 st.success("Account created! You can now Sign In.")
+
                         except Exception as e:
                             st.error(f"Error: {str(e)}")
                     else:
@@ -1105,6 +1157,7 @@ elif st.session_state.step == "DONE":
                 pass
             st.session_state.clear()
             st.rerun()
+
 
 
 
