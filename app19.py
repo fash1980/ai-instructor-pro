@@ -250,7 +250,7 @@ st.markdown(
 debug_box = st.empty()
 
 # ---------------- Constants & Helpers ----------------
-PARTS = ["INTRODUCTION", "BODY 1", "BODY 2", "BODY 3", "CONCLUSION"]
+PARTS = ["INTRODUCTION", "SECTION 1", "SECTION 2", "SECTION 3", "CONCLUSION"]
 
 
 def word_count(text):
@@ -1274,6 +1274,7 @@ elif st.session_state.step == "DONE":
                 pass
             st.session_state.clear()
             st.rerun()
+
 
 
 
