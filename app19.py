@@ -400,16 +400,14 @@ from urllib.parse import quote
 import time
 
 def auth_gate():
-    cookie = stx.CookieManager()
-
     if "sb_session" not in st.session_state:
         st.session_state.sb_session = None
-    if "oauth_ready" not in st.session_state:
-        st.session_state.oauth_ready = False
     if "oauth_url" not in st.session_state:
         st.session_state.oauth_url = None
-    if "pkce_wait" not in st.session_state:
-        st.session_state.pkce_wait = False
+    if "pkce_verifier" not in st.session_state:
+        st.session_state.pkce_verifier = None
+    if "oauth_started" not in st.session_state:
+        st.session_state.oauth_started = False
 
     # --- Handle OAuth callback ---
     params = st.query_params
@@ -418,26 +416,29 @@ def auth_gate():
         code = code[0] if code else None
 
     if (not st.session_state.sb_session) and code:
-        verifier = cookie.get("pkce_verifier")
+        verifier = st.session_state.pkce_verifier
 
         if not verifier:
-            st.error("Missing PKCE verifier. Cookie was not saved before redirect.")
-            st.session_state.oauth_ready = False
+            st.error("Missing PKCE verifier in session. Please click Google Login again.")
+            st.session_state.oauth_started = False
             st.session_state.oauth_url = None
-            st.session_state.pkce_wait = False
             st.query_params.clear()
             st.stop()
 
         try:
             res = supabase_admin.auth.exchange_code_for_session(
-                {"auth_code": code, "code_verifier": verifier}
+                {
+                    "auth_code": code,
+                    "code_verifier": verifier,
+                }
             )
-            oauth_session = res.session
 
+            oauth_session = res.session
             if not oauth_session:
-                st.error("Supabase did not return a session.")
+                st.error("Supabase did not return a session. Check redirect URLs and Google provider setup.")
                 st.stop()
 
+            # create profile if missing
             prof = (
                 supabase_admin.table("profiles")
                 .select("id")
@@ -458,10 +459,9 @@ def auth_gate():
                 ).execute()
 
             st.session_state.sb_session = oauth_session
-            cookie.delete("pkce_verifier")
-            st.session_state.oauth_ready = False
+            st.session_state.pkce_verifier = None
+            st.session_state.oauth_started = False
             st.session_state.oauth_url = None
-            st.session_state.pkce_wait = False
             st.query_params.clear()
             st.rerun()
 
@@ -480,13 +480,11 @@ def auth_gate():
         app_url = "https://ai-instructor-pro.streamlit.app"
         redirect_to = quote(app_url, safe="")
 
-        # STEP 1: create verifier and try saving cookie
         if st.button("🌐 Login with Google", use_container_width=True):
             verifier, challenge = make_pkce_pair()
 
-            cookie.set("pkce_verifier", verifier)
-
-            oauth_url = (
+            st.session_state.pkce_verifier = verifier
+            st.session_state.oauth_url = (
                 f"{SUPABASE_URL}/auth/v1/authorize"
                 f"?provider=google"
                 f"&redirect_to={redirect_to}"
@@ -495,26 +493,10 @@ def auth_gate():
                 f"&code_challenge={challenge}"
                 f"&code_challenge_method=s256"
             )
-
-            st.session_state.oauth_url = oauth_url
-            st.session_state.pkce_wait = True
+            st.session_state.oauth_started = True
             st.rerun()
 
-        # STEP 2: wait until cookie is actually readable
-        if st.session_state.pkce_wait:
-            saved_verifier = cookie.get("pkce_verifier")
-
-            if saved_verifier:
-                st.session_state.oauth_ready = True
-                st.session_state.pkce_wait = False
-                st.success("Google login is ready.")
-            else:
-                st.warning("Preparing secure Google login...")
-                time.sleep(1)
-                st.rerun()
-
-        # STEP 3: only show continue button after cookie is confirmed saved
-        if st.session_state.oauth_ready and st.session_state.oauth_url:
+        if st.session_state.oauth_started and st.session_state.oauth_url:
             st.link_button("Continue with Google", st.session_state.oauth_url, use_container_width=True)
             st.info("Click the button above to continue.")
             st.stop()
@@ -540,9 +522,7 @@ def auth_gate():
                 reg_name = st.text_input("Full Name", placeholder="Enter your name")
                 reg_age = st.number_input("Age", min_value=5, max_value=100, value=15)
                 reg_lvl = st.selectbox(
-                    "Education Level",
-                    ["Primary", "Secondary", "Higher Secondary"],
-                    key="reg_lvl_form"
+                    "Education Level", ["Primary", "Secondary", "Higher Secondary"], key="reg_lvl_form"
                 )
                 reg_email = st.text_input("Email", key="reg_email")
                 reg_pw = st.text_input("Password", type="password", key="reg_pw")
@@ -1093,6 +1073,7 @@ elif st.session_state.step == "DONE":
                 pass
             st.session_state.clear()
             st.rerun()
+
 
 
 
