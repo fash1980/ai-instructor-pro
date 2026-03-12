@@ -1263,7 +1263,18 @@ elif st.session_state.step == "DONE":
     c1, c2 = st.columns(2)
     with c1:
         if st.button("Start New Lesson", use_container_width=True):
+            # keep login session + profile settings
+            keep_keys = {
+                "sb_session": st.session_state.get("sb_session"),
+                "level": st.session_state.get("level"),
+                "strictness": st.session_state.get("strictness", 2),
+            }
+        
             st.session_state.clear()
+        
+            for k, v in keep_keys.items():
+                st.session_state[k] = v
+        
             st.rerun()
 
     with c2:
@@ -1274,6 +1285,7 @@ elif st.session_state.step == "DONE":
                 pass
             st.session_state.clear()
             st.rerun()
+
 
 
 
