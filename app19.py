@@ -238,7 +238,7 @@ st.markdown(
 """,
     unsafe_allow_html=True
 )
-
+debug_box = st.empty()
 
 # ---------------- Constants & Helpers ----------------
 PARTS = ["INTRODUCTION", "BODY 1", "BODY 2", "BODY 3", "CONCLUSION"]
@@ -364,9 +364,6 @@ TEXT:
 
     raw = ollama_chat([{"role": "user", "content": prompt}])
 
-    # DEBUG
-    st.write("RAW highlight response:", raw)
-
     try:
         data = json.loads(raw)
         mistakes = []
@@ -382,11 +379,14 @@ TEXT:
                     "fix": fix
                 })
 
-        st.write("PARSED mistakes:", mistakes)
+        st.session_state["debug_raw_highlight"] = raw
+        st.session_state["debug_parsed_mistakes"] = mistakes
         return mistakes
 
     except Exception as e:
-        st.write("JSON parse error:", str(e))
+        st.session_state["debug_raw_highlight"] = raw
+        st.session_state["debug_parsed_mistakes"] = []
+        st.session_state["debug_json_error"] = str(e)
         return []
 
 
@@ -948,10 +948,20 @@ elif st.session_state.step == "COLLECT_PART":
         if st.session_state.is_processing and st.session_state.pending_text is not None:
             student_text = st.session_state.pending_text
             late = remaining <= 0
+            
             with st.status("Tutor is reviewing your work...", expanded=True) as status:
                 st.write("🔍 Scanning for mistakes...")
                 mistakes = scan_for_highlights(student_text)
-        
+                with debug_box.container():
+                    st.warning("DEBUG MODE")
+                    st.write("Raw response:", st.session_state.get("debug_raw_highlight", "not available"))
+                    st.write("Parsed mistakes:", st.session_state.get("debug_parsed_mistakes", []))
+                    st.write("JSON error:", st.session_state.get("debug_json_error", "none"))
+                with st.sidebar:
+                    st.markdown("### Debug")
+                    st.write("Raw:", st.session_state.get("debug_raw_highlight", "none"))
+                    st.write("Parsed:", st.session_state.get("debug_parsed_mistakes", []))
+                    st.write("JSON error:", st.session_state.get("debug_json_error", "none"))
                 st.write("✍️ Refining your paragraph...")
                 corrected = ollama_chat(
                     [
@@ -1151,6 +1161,7 @@ elif st.session_state.step == "DONE":
                 pass
             st.session_state.clear()
             st.rerun()
+
 
 
 
