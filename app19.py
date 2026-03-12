@@ -408,6 +408,8 @@ def auth_gate():
         st.session_state.oauth_ready = False
     if "oauth_url" not in st.session_state:
         st.session_state.oauth_url = None
+    if "pkce_wait" not in st.session_state:
+        st.session_state.pkce_wait = False
 
     # --- Handle OAuth callback ---
     params = st.query_params
@@ -419,26 +421,23 @@ def auth_gate():
         verifier = cookie.get("pkce_verifier")
 
         if not verifier:
-            st.error("Missing PKCE verifier. Please click Google Login again.")
-            st.query_params.clear()
+            st.error("Missing PKCE verifier. Cookie was not saved before redirect.")
             st.session_state.oauth_ready = False
             st.session_state.oauth_url = None
+            st.session_state.pkce_wait = False
+            st.query_params.clear()
             st.stop()
 
         try:
             res = supabase_admin.auth.exchange_code_for_session(
-                {
-                    "auth_code": code,
-                    "code_verifier": verifier
-                }
+                {"auth_code": code, "code_verifier": verifier}
             )
-
             oauth_session = res.session
+
             if not oauth_session:
-                st.error("Supabase did not return a session. Check redirect URLs and Google provider setup.")
+                st.error("Supabase did not return a session.")
                 st.stop()
 
-            # Create profile if missing
             prof = (
                 supabase_admin.table("profiles")
                 .select("id")
@@ -459,16 +458,15 @@ def auth_gate():
                 ).execute()
 
             st.session_state.sb_session = oauth_session
-
             cookie.delete("pkce_verifier")
-            st.query_params.clear()
             st.session_state.oauth_ready = False
             st.session_state.oauth_url = None
+            st.session_state.pkce_wait = False
+            st.query_params.clear()
             st.rerun()
 
         except Exception as e:
             st.error(f"Authentication failed: {e}")
-            st.session_state.sb_session = None
             st.stop()
 
     # --- If not logged in, show login UI ---
@@ -482,9 +480,10 @@ def auth_gate():
         app_url = "https://ai-instructor-pro.streamlit.app"
         redirect_to = quote(app_url, safe="")
 
-        # Step A: user clicks button
+        # STEP 1: create verifier and try saving cookie
         if st.button("🌐 Login with Google", use_container_width=True):
             verifier, challenge = make_pkce_pair()
+
             cookie.set("pkce_verifier", verifier)
 
             oauth_url = (
@@ -498,23 +497,26 @@ def auth_gate():
             )
 
             st.session_state.oauth_url = oauth_url
-            st.session_state.oauth_ready = True
+            st.session_state.pkce_wait = True
             st.rerun()
 
+        # STEP 2: wait until cookie is actually readable
+        if st.session_state.pkce_wait:
+            saved_verifier = cookie.get("pkce_verifier")
+
+            if saved_verifier:
+                st.session_state.oauth_ready = True
+                st.session_state.pkce_wait = False
+                st.success("Google login is ready.")
+            else:
+                st.warning("Preparing secure Google login...")
+                time.sleep(1)
+                st.rerun()
+
+        # STEP 3: only show continue button after cookie is confirmed saved
         if st.session_state.oauth_ready and st.session_state.oauth_url:
             st.link_button("Continue with Google", st.session_state.oauth_url, use_container_width=True)
-            st.info("If automatic redirect does not happen, click this button.")
-            st.stop()
-
-        # Step B: redirect after rerun
-        if st.session_state.oauth_ready and st.session_state.oauth_url:
-            st.markdown(
-                f'''
-                <meta http-equiv="refresh" content="0; url={st.session_state.oauth_url}">
-                <a href="{st.session_state.oauth_url}" target="_self">Continue to Google Login</a>
-                ''',
-                unsafe_allow_html=True,
-            )
+            st.info("Click the button above to continue.")
             st.stop()
 
         # ---- Email Sign In / Sign Up ----
@@ -1091,6 +1093,7 @@ elif st.session_state.step == "DONE":
                 pass
             st.session_state.clear()
             st.rerun()
+
 
 
 
