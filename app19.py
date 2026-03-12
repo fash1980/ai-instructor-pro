@@ -326,36 +326,38 @@ def ollama_chat(messages, temperature=0.7, max_tokens=300):
         )
 
         data = r.json()
+
+        # save full response for debug
         st.session_state["debug_hf_full_response"] = data
 
         if "error" in data:
             return f"⚠️ API Error: {data['error']}"
 
-        if "choices" in data and len(data["choices"]) > 0:
-            msg = data["choices"][0].get("message", {})
+        if "choices" not in data:
+            return f"⚠️ Error: Unexpected response: {data}"
 
-            # normal OpenAI-style
-            if isinstance(msg.get("content"), str):
-                return msg["content"].strip()
+        msg = data["choices"][0].get("message", {})
 
-            # some providers return content as list of blocks
-            if isinstance(msg.get("content"), list):
-                parts = []
-                for part in msg["content"]:
-                    if isinstance(part, dict):
-                        if part.get("type") == "text" and "text" in part:
-                            parts.append(part["text"])
-                        elif "content" in part:
-                            parts.append(str(part["content"]))
-                return "\n".join(parts).strip()
+        content = msg.get("content")
 
-            # fallback if text appears elsewhere
-            if "text" in msg:
-                return str(msg["text"]).strip()
+        # ---- CASE 1 : content is normal string
+        if isinstance(content, str):
+            return content.strip()
 
-            return f"⚠️ Error: No readable content in model response. Response message: {msg}"
+        # ---- CASE 2 : content is list of blocks
+        if isinstance(content, list):
+            texts = []
 
-        return f"⚠️ Error: Unexpected API response: {data}"
+            for block in content:
+                if isinstance(block, dict):
+                    if "text" in block:
+                        texts.append(block["text"])
+                    elif block.get("type") == "text" and "text" in block:
+                        texts.append(block["text"])
+
+            return "\n".join(texts).strip()
+
+        return "⚠️ Error: No readable content"
 
     except Exception as e:
         return f"⚠️ Error: {str(e)}"
@@ -1217,6 +1219,7 @@ elif st.session_state.step == "DONE":
                 pass
             st.session_state.clear()
             st.rerun()
+
 
 
 
