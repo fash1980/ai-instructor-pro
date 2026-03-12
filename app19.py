@@ -15,7 +15,7 @@ import extra_streamlit_components as stx
 from streamlit_float import float_init
 from urllib.parse import quote
 import json
-
+DEBUG_AUTH = True
 def _b64url(b: bytes) -> str:
     return base64.urlsafe_b64encode(b).decode().rstrip("=")
 
@@ -1105,6 +1105,7 @@ elif st.session_state.step == "DONE":
                 pass
             st.session_state.clear()
             st.rerun()
+
 
 
 
