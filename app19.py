@@ -305,7 +305,7 @@ def floating_timer(time_text, current_part, timer_started):
 
 
 # ---------------- AI Engines ----------------
-def ollama_chat(messages):
+def ollama_chat(messages, temperature=0.7, max_tokens=300):
     try:
         hf_token = st.secrets["HF_API_TOKEN"]
         hf_model = st.secrets["HF_MODEL"]
@@ -1188,6 +1188,7 @@ elif st.session_state.step == "DONE":
                 pass
             st.session_state.clear()
             st.rerun()
+
 
 
 
