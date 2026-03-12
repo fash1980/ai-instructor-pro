@@ -390,33 +390,24 @@ def tokenize_with_spans(text):
 
 def build_token_prompt(student_text, tokens):
     numbered_tokens = "\n".join(
-        [f"{i}: {t['token']}" for i, t in enumerate(tokens)]
+        f"{i}:{t['token']}" for i, t in enumerate(tokens)
     )
 
     return f"""
-You are a strict proofreader.
+Return ONLY JSON.
 
-The student typed this paragraph:
+Paragraph:
 {student_text}
 
-Here is the numbered token list:
+Tokens:
 {numbered_tokens}
 
-Return ONLY valid JSON in this exact format:
+Output format:
 {{
-  "spelling_token_indexes": [0, 3],
-  "grammar_token_ranges": [[4, 7], [10, 12]],
-  "corrected_text": "Corrected full paragraph here"
+"spelling_token_indexes": [],
+"grammar_token_ranges": [],
+"corrected_text": ""
 }}
-
-Rules:
-- Return JSON only
-- No markdown
-- No explanation
-- spelling_token_indexes must contain indexes of individual misspelled tokens
-- grammar_token_ranges must contain [start_index, end_index] inclusive
-- corrected_text must be the full corrected paragraph
-- Use only indexes from the numbered token list
 """.strip()
 def scan_tokens_with_hf(student_text):
     tokens = tokenize_with_spans(student_text)
@@ -1323,6 +1314,7 @@ elif st.session_state.step == "DONE":
                 pass
             st.session_state.clear()
             st.rerun()
+
 
 
 
