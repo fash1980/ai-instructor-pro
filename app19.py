@@ -394,21 +394,67 @@ def build_token_prompt(student_text, tokens):
     )
 
     return f"""
-Return ONLY JSON.
+Return ONLY these 3 lines.
+No explanation.
+No reasoning.
+No markdown.
+
+SPELL: comma-separated spelling token indexes
+GRAMMAR: comma-separated grammar ranges using start-end
+CORRECTED: full corrected paragraph
 
 Paragraph:
 {student_text}
 
 Tokens:
 {numbered_tokens}
-
-Output format:
-{{
-"spelling_token_indexes": [],
-"grammar_token_ranges": [],
-"corrected_text": ""
-}}
 """.strip()
+
+def parse_ai_tagged_response(raw, student_text, tokens):
+    spelling_idxs = []
+    grammar_ranges = []
+    corrected_text = student_text
+
+    lines = [line.strip() for line in raw.splitlines() if line.strip()]
+
+    for line in lines:
+        upper = line.upper()
+
+        if upper.startswith("SPELL:"):
+            value = line.split(":", 1)[1].strip()
+            if value:
+                for x in value.split(","):
+                    x = x.strip()
+                    if x.isdigit():
+                        idx = int(x)
+                        if 0 <= idx < len(tokens):
+                            spelling_idxs.append(idx)
+
+        elif upper.startswith("GRAMMAR:"):
+            value = line.split(":", 1)[1].strip()
+            if value:
+                for item in value.split(","):
+                    item = item.strip()
+                    if "-" in item:
+                        a, b = item.split("-", 1)
+                        a = a.strip()
+                        b = b.strip()
+                        if a.isdigit() and b.isdigit():
+                            s = int(a)
+                            e = int(b)
+                            if 0 <= s <= e < len(tokens):
+                                grammar_ranges.append([s, e])
+
+        elif upper.startswith("CORRECTED:"):
+            corrected_text = line.split(":", 1)[1].strip()
+
+    return {
+        "tokens": tokens,
+        "spelling_token_indexes": spelling_idxs,
+        "grammar_token_ranges": grammar_ranges,
+        "corrected_text": corrected_text
+    }
+    
 def scan_tokens_with_hf(student_text):
     tokens = tokenize_with_spans(student_text)
     prompt = build_token_prompt(student_text, tokens)
@@ -418,11 +464,9 @@ def scan_tokens_with_hf(student_text):
             {
                 "role": "system",
                 "content": (
-                    "You are a grammar checker. "
-                    "Return ONLY JSON. "
-                    "Do NOT explain. "
-                    "Do NOT include reasoning. "
-                    "Do NOT include markdown."
+                    "Return only the requested 3 lines. "
+                    "Do not explain. "
+                    "Do not include reasoning."
                 )
             },
             {
@@ -430,18 +474,16 @@ def scan_tokens_with_hf(student_text):
                 "content": prompt
             }
         ],
-        temperature=0,
-        max_tokens=150
+        temperature=0.0,
+        max_tokens=120
     )
 
     st.session_state["debug_raw_highlight"] = raw
 
     try:
-        cleaned = raw.strip()
-
-        if cleaned.startswith("⚠️ Error"):
+        if raw.strip().startswith("⚠️ Error"):
             st.session_state["debug_parsed_mistakes"] = {}
-            st.session_state["debug_json_error"] = cleaned
+            st.session_state["debug_json_error"] = raw
             return {
                 "tokens": tokens,
                 "spelling_token_indexes": [],
@@ -449,49 +491,7 @@ def scan_tokens_with_hf(student_text):
                 "corrected_text": student_text
             }
 
-        cleaned = re.sub(r"^```json\s*", "", cleaned, flags=re.IGNORECASE)
-        cleaned = re.sub(r"^```\s*", "", cleaned)
-        cleaned = re.sub(r"\s*```$", "", cleaned)
-
-        match = re.search(r"\{.*\}", cleaned, flags=re.DOTALL)
-        if match:
-            cleaned = match.group(0)
-
-        data = json.loads(cleaned)
-
-        spelling_idxs = data.get("spelling_token_indexes", [])
-        grammar_ranges = data.get("grammar_token_ranges", [])
-        corrected_text = data.get("corrected_text", student_text)
-
-        if not isinstance(spelling_idxs, list):
-            spelling_idxs = []
-        if not isinstance(grammar_ranges, list):
-            grammar_ranges = []
-        if not isinstance(corrected_text, str):
-            corrected_text = student_text
-
-        valid_spelling = []
-        for idx in spelling_idxs:
-            if isinstance(idx, int) and 0 <= idx < len(tokens):
-                valid_spelling.append(idx)
-
-        valid_grammar = []
-        for r in grammar_ranges:
-            if (
-                isinstance(r, list)
-                and len(r) == 2
-                and isinstance(r[0], int)
-                and isinstance(r[1], int)
-                and 0 <= r[0] <= r[1] < len(tokens)
-            ):
-                valid_grammar.append(r)
-
-        parsed = {
-            "tokens": tokens,
-            "spelling_token_indexes": valid_spelling,
-            "grammar_token_ranges": valid_grammar,
-            "corrected_text": corrected_text
-        }
+        parsed = parse_ai_tagged_response(raw, student_text, tokens)
 
         st.session_state["debug_parsed_mistakes"] = parsed
         st.session_state["debug_json_error"] = "none"
@@ -1314,6 +1314,7 @@ elif st.session_state.step == "DONE":
                 pass
             st.session_state.clear()
             st.rerun()
+
 
 
 
