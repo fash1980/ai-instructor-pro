@@ -340,62 +340,79 @@ def ollama_chat(messages):
 
 
 def scan_for_highlights(student_text):
-    prompt = (
-        "Act as a proofreader. Scan for spelling and grammar mistakes.\n"
-        "Return ONLY lines in this exact format:\n"
-        'MISTAKE: "word" | TYPE: "SPELLING" | FIX: "correction"\n'
-        f"TEXT:\n{student_text}"
-    )
-    raw = ollama_chat([{ "role": "user", "content": prompt }])
+    prompt = f"""
+You are a strict proofreader.
 
-    mistakes = []
-    for line in raw.splitlines():
-        if "|" in line and "MISTAKE:" in line:
-            try:
-                p = [x.strip().replace('"', "") for x in line.split("|")]
-                mistakes.append(
-                    {
-                        "wrong": p[0].split(":", 1)[1].strip(),
-                        "type": p[1].split(":", 1)[1].strip().upper(),
-                        "fix": p[2].split(":", 1)[1].strip(),
-                    }
-                )
-            except Exception:
-                continue
-    return mistakes
+Find spelling and grammar mistakes in the student's paragraph.
+
+Return ONLY valid JSON in this exact format:
+[
+  {{"wrong": "electrong", "type": "SPELLING", "fix": "electronic"}},
+  {{"wrong": "machine", "type": "GRAMMAR", "fix": "machines"}}
+]
+
+Rules:
+- type must be either "SPELLING" or "GRAMMAR"
+- wrong must match the exact text found in the student's paragraph
+- do not include any explanation
+- do not wrap in markdown
+- return only JSON
+
+TEXT:
+{student_text}
+""".strip()
+
+    raw = ollama_chat([{"role": "user", "content": prompt}])
+
+    try:
+        data = json.loads(raw)
+        mistakes = []
+        for item in data:
+            wrong = str(item.get("wrong", "")).strip()
+            mtype = str(item.get("type", "")).strip().upper()
+            fix = str(item.get("fix", "")).strip()
+
+            if wrong and mtype in ["SPELLING", "GRAMMAR"]:
+                mistakes.append({
+                    "wrong": wrong,
+                    "type": mtype,
+                    "fix": fix
+                })
+        return mistakes
+
+    except Exception:
+        # fallback: return empty instead of crashing
+        return []
 
 
 def render_highlighted_block(text, mistakes):
-    # 1. Escape the text first to prevent XSS/rendering issues
     temp_text = html.escape(text)
 
-    # 2. Sort mistakes by length (longest first) 
-    # This prevents "in" from being replaced inside "inside" 
-    # if both were somehow flagged.
-    mistakes = sorted(mistakes, key=lambda x: len(x['wrong']), reverse=True)
+    # longest first
+    mistakes = sorted(mistakes, key=lambda x: len(x["wrong"]), reverse=True)
 
-    # 3. Use a set to track what we've already highlighted 
-    # to avoid "double-wrapping" HTML tags
-    processed_words = set()
+    used = set()
 
     for m in mistakes:
-        wrong_word = m["wrong"]
-        if wrong_word.lower() in processed_words:
+        wrong_word = (m.get("wrong") or "").strip()
+        mtype = (m.get("type") or "").strip().upper()
+
+        if not wrong_word:
             continue
-            
-        css = "hl_spell" if m["type"] == "SPELLING" else "hl_gram"
-        
-        # \b ensures we only match WHOLE words. 
-        # re.escape ensures characters like '.' or '?' don't break the regex.
-        pattern = rf"\b({re.escape(wrong_word)})\b"
-        
-        temp_text = re.sub(
-            pattern,
-            rf'<span class="{css}">\1</span>',
-            temp_text,
-            flags=re.IGNORECASE,
+
+        key = wrong_word.lower()
+        if key in used:
+            continue
+
+        css = "hl_spell" if mtype == "SPELLING" else "hl_gram"
+
+        pattern = re.compile(rf"(?i)\b{re.escape(wrong_word)}\b")
+        temp_text = pattern.sub(
+            lambda match: f'<span class="{css}">{match.group(0)}</span>',
+            temp_text
         )
-        processed_words.add(wrong_word.lower())
+
+        used.add(key)
 
     return f"""
 <div class='msg-ai'>
@@ -1132,6 +1149,7 @@ elif st.session_state.step == "DONE":
                 pass
             st.session_state.clear()
             st.rerun()
+
 
 
 
