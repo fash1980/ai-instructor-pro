@@ -827,23 +827,73 @@ elif st.session_state.step == "COLLECT_PART":
                 <div style="font-family: sans-serif; color: #64748b; font-size: 14px; margin-bottom: 5px;">
                     Word Count: <span id="wordCount">0</span> / {min_w}
                 </div>
+            
+                <div id="pasteWarning" style="
+                    display:none;
+                    margin-top:8px;
+                    padding:10px 12px;
+                    border-radius:10px;
+                    background:#eefcf3;
+                    border:1px solid #c7f0d8;
+                    color:#166534;
+                    font-size:14px;
+                    font-family:sans-serif;
+                ">
+                    ✨ You are doing great. Please type in your own words so you can improve your writing skills.
+                </div>
+            
                 <script>
-                    // Target the textarea in the parent window
-                    const textarea = parent.document.querySelectorAll('textarea')[0];
-                    const display = document.getElementById('wordCount');
-                    
-                    function countWords() {{
-                        const text = textarea.value.trim();
-                        const count = text ? text.split(/\s+/).length : 0;
-                        display.innerText = count;
+                    function attachHandlers() {{
+                        const textareas = parent.document.querySelectorAll('textarea');
+                        if (!textareas || textareas.length === 0) return;
+            
+                        const textarea = textareas[textareas.length - 1];
+                        const display = document.getElementById('wordCount');
+                        const warning = document.getElementById('pasteWarning');
+            
+                        function countWords() {{
+                            const text = textarea.value.trim();
+                            const count = text ? text.split(/\\s+/).length : 0;
+                            display.innerText = count;
+                        }}
+            
+                        function showWarning() {{
+                            warning.style.display = 'block';
+                            clearTimeout(window.__pasteWarnTimer);
+                            window.__pasteWarnTimer = setTimeout(() => {{
+                                warning.style.display = 'none';
+                            }}, 3000);
+                        }}
+            
+                        if (!textarea.dataset.handlersAttached) {{
+                            textarea.addEventListener('input', countWords);
+            
+                            textarea.addEventListener('paste', function(e) {{
+                                e.preventDefault();
+                                showWarning();
+                            }});
+            
+                            textarea.addEventListener('drop', function(e) {{
+                                e.preventDefault();
+                                showWarning();
+                            }});
+            
+                            textarea.addEventListener('keydown', function(e) {{
+                                if ((e.ctrlKey || e.metaKey) && (e.key === 'v' || e.key === 'V')) {{
+                                    e.preventDefault();
+                                    showWarning();
+                                }}
+                            }});
+            
+                            textarea.dataset.handlersAttached = "true";
+                        }}
+            
+                        countWords();
                     }}
-                    
-                    // Update on every keystroke
-                    textarea.addEventListener('input', countWords);
-                    // Initial count
-                    countWords();
+            
+                    setTimeout(attachHandlers, 300);
                 </script>
-            """, height=30)
+            """, height=95)
             student_text = st.text_area(
                 f"Target: {min_w}-{max_w} words",
                 height=220,
@@ -1080,6 +1130,7 @@ elif st.session_state.step == "DONE":
                 pass
             st.session_state.clear()
             st.rerun()
+
 
 
 
