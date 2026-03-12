@@ -632,8 +632,8 @@ Step Tutor Hint
             st.info("No history yet.")
 
     if st.button("Logout", use_container_width=True):
-    st.session_state.clear()
-    st.rerun()
+        st.session_state.clear()
+        st.rerun()
 
 
 # ---------------- State Init ----------------
@@ -1038,6 +1038,7 @@ elif st.session_state.step == "DONE":
                 pass
             st.session_state.clear()
             st.rerun()
+
 
 
 
