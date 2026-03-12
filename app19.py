@@ -493,11 +493,15 @@ def auth_gate():
         )
 
         # Google login button now opens external login page
+        st.markdown('<div class="auth-wrapper">', unsafe_allow_html=True)
+
         st.link_button(
-            "🌐 Login with Google",
+            "🌐 Continue with Google",
             "https://fash1980.github.io/ai-instructor-pro/login.html",
             use_container_width=True,
         )
+        
+        st.markdown('</div>', unsafe_allow_html=True)
 
         with st.expander("🔐 User Sign In / Sign Up", expanded=True):
             tab_login, tab_signup = st.tabs(["Sign In", "Sign Up"])
@@ -1071,6 +1075,7 @@ elif st.session_state.step == "DONE":
                 pass
             st.session_state.clear()
             st.rerun()
+
 
 
 
