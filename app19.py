@@ -507,13 +507,12 @@ def auth_gate():
 
         # Step B: redirect after rerun
         if st.session_state.oauth_ready and st.session_state.oauth_url:
-            components.html(
-                f"""
-                <script>
-                    window.top.location.href = "{st.session_state.oauth_url}";
-                </script>
-                """,
-                height=0,
+            st.markdown(
+                f'''
+                <meta http-equiv="refresh" content="0; url={st.session_state.oauth_url}">
+                <a href="{st.session_state.oauth_url}" target="_self">Continue to Google Login</a>
+                ''',
+                unsafe_allow_html=True,
             )
             st.stop()
 
@@ -1091,6 +1090,7 @@ elif st.session_state.step == "DONE":
                 pass
             st.session_state.clear()
             st.rerun()
+
 
 
 
