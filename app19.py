@@ -462,7 +462,7 @@ def auth_gate():
         # Google login button now opens external login page
         st.link_button(
             "🌐 Login with Google",
-            "https://YOUR-LOGIN-PAGE-URL/login.html",
+            "https://fash1980.github.io/ai-instructor-pro/login.html",
             use_container_width=True,
         )
 
@@ -1038,6 +1038,7 @@ elif st.session_state.step == "DONE":
                 pass
             st.session_state.clear()
             st.rerun()
+
 
 
 
