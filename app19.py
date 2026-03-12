@@ -38,7 +38,12 @@ except Exception:
 # ---------------- Page Config ----------------
 st.set_page_config(page_title="AI Instructor Pro | English Tutor", layout="wide", page_icon="✍️")
 float_init()
+# ---------------- Debug State Init ----------------
+if "debug_log" not in st.session_state:
+    st.session_state.debug_log = []
 
+if "debug_last" not in st.session_state:
+    st.session_state.debug_last = {}
 # ---------------- Supabase Setup ----------------
 SUPABASE_URL = st.secrets["SUPABASE_URL"]
 SUPABASE_ANON_KEY = st.secrets["SUPABASE_ANON_KEY"]
@@ -745,7 +750,10 @@ with st.sidebar:
         disabled=True,  # <--- THIS LOCKS THE DROP DOWN
         help="This level is fixed based on your profile settings.",
     )
+    st.markdown("### 🐞 Debug Info")
 
+        if st.session_state.debug_last:
+            st.json(st.session_state.debug_last)
     st.session_state.strictness = st.slider("Strictness Level", 0, 3, 2)
 
     # ✅ Refined step-by-step Tutor Hint box (matches current_part)
@@ -1085,19 +1093,14 @@ elif st.session_state.step == "COLLECT_PART":
                 st.write("STUDENT TEXT:", student_text)
                 st.write("TOKEN ANALYSIS:", analysis)
 
-                with debug_box.container():
-                    st.warning("DEBUG MODE")
-                    st.write("Raw response:", st.session_state.get("debug_raw_highlight", "not available"))
-                    st.write("Parsed mistakes:", st.session_state.get("debug_parsed_mistakes", {}))
-                    st.write("JSON error:", st.session_state.get("debug_json_error", "none"))
-                    st.write("HF full response:", st.session_state.get("debug_hf_full_response", {}))
+                st.session_state.debug_last = {
+                    "raw_response": st.session_state.get("debug_raw_highlight", "not available"),
+                    "parsed_mistakes": st.session_state.get("debug_parsed_mistakes", {}),
+                    "json_error": st.session_state.get("debug_json_error", "none"),
+                    "hf_full_response": st.session_state.get("debug_hf_full_response", {}),
+                }
 
-                with st.sidebar:
-                    st.markdown("### Debug")
-                    st.write("Raw:", st.session_state.get("debug_raw_highlight", "none"))
-                    st.write("Parsed:", st.session_state.get("debug_parsed_mistakes", {}))
-                    st.write("JSON error:", st.session_state.get("debug_json_error", "none"))
-                    st.write("HF full response:", st.session_state.get("debug_hf_full_response", {}))
+                
 
                 st.write("✍️ Refining your paragraph...")
 
@@ -1298,6 +1301,7 @@ elif st.session_state.step == "DONE":
                 pass
             st.session_state.clear()
             st.rerun()
+
 
 
 
