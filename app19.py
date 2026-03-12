@@ -396,110 +396,39 @@ def make_pkce_pair():
 from urllib.parse import quote
 import time
 
-def auth_debug(label, value=None):
-    if DEBUG_AUTH:
-        import streamlit as st
-        with st.expander(f"🔎 AUTH DEBUG — {label}", expanded=True):
-            if value is not None:
-                st.code(str(value))
-            else:
-                st.write("✓ reached")
+
 def auth_gate():
-
-    auth_debug("AUTH GATE STARTED")
-
     if "sb_session" not in st.session_state:
         st.session_state.sb_session = None
 
-    auth_debug("Initial session_state.sb_session",
-               st.session_state.get("sb_session"))
-
-    # --- Read query params ---
+    # Read token returned from external frontend login page
     params = st.query_params
-    code = params.get("code", None)
-    pv = params.get("pv", None)
+    access_token = params.get("access_token", None)
 
-    if isinstance(code, list):
-        code = code[0] if code else None
-    if isinstance(pv, list):
-        pv = pv[0] if pv else None
+    if isinstance(access_token, list):
+        access_token = access_token[0] if access_token else None
 
-    auth_debug("Query Params", dict(params))
-    auth_debug("OAuth code", code)
-    auth_debug("PKCE pv", pv)
-
-    # --- If user returned from Google with code but no pv, recover it ---
-    if code and not pv:
-        auth_debug("PKCE verifier missing — attempting recovery")
-
-        components.html(
-            """
-            <script>
-                const params = new URLSearchParams(window.location.search);
-                const code = params.get("code");
-                const pv = params.get("pv");
-
-                if (code && !pv) {
-                    const verifier = localStorage.getItem("pkce_verifier");
-                    if (verifier) {
-                        params.set("pv", verifier);
-                        const newUrl = window.location.pathname + "?" + params.toString();
-                        window.top.location.replace(newUrl);
-                    }
-                }
-            </script>
-            """,
-            height=0,
-        )
-
-        st.info("Completing Google sign-in...")
-        st.stop()
-
-    # --- Handle OAuth callback ---
-    if (not st.session_state.sb_session) and code:
-
-        auth_debug("ENTERING OAUTH CALLBACK")
-
-        verifier = pv
-        auth_debug("Verifier received", verifier)
-
-        if not verifier:
-            auth_debug("ERROR — Missing verifier")
-            st.error("Missing PKCE verifier after Google callback.")
-            st.stop()
-
+    # If token came from Google frontend login page
+    if access_token and not st.session_state.sb_session:
         try:
-            auth_debug("Calling exchange_code_for_session")
-            auth_debug("Auth Code Length", len(code) if code else 0)
-            auth_debug("Verifier Length", len(verifier) if verifier else 0)
+            user_db = user_client(access_token)
+            user_res = user_db.auth.get_user()
+            user = user_res.user
 
-            res = supabase_admin.auth.exchange_code_for_session(
-                {
-                    "auth_code": code,
-                    "code_verifier": verifier,
-                }
-            )
-
-            auth_debug("Exchange response object", res)
-
-            oauth_session = res.session
-            auth_debug("OAuth session returned", oauth_session)
-
-            if not oauth_session:
-                auth_debug("NO SESSION RETURNED FROM SUPABASE", res)
-                st.error(
-                    "Supabase did not return a session. Check redirect URLs and Google provider setup."
-                )
+            if not user:
+                st.error("Invalid Google login token.")
                 st.stop()
 
-            # --- Create profile if missing ---
-            auth_debug("Checking profile for user",
-                       oauth_session.user.id)
+            st.session_state.sb_session = SimpleNamespace(
+                access_token=access_token,
+                user=user
+            )
 
+            # Create profile if missing
             prof = (
                 supabase_admin.table("profiles")
                 .select("id")
-                .eq("id", oauth_session.user.id)
+                .eq("id", user.id)
                 .limit(1)
                 .execute()
             )
@@ -507,87 +436,37 @@ def auth_gate():
             if not prof.data:
                 supabase_admin.table("profiles").insert(
                     {
-                        "id": oauth_session.user.id,
-                        "full_name": oauth_session.user.user_metadata.get(
-                            "full_name", "Google Learner"
-                        ),
-                        "email": oauth_session.user.email,
+                        "id": user.id,
+                        "full_name": user.user_metadata.get("full_name", "Google Learner"),
+                        "email": user.email,
                         "age": 15,
                         "education_level": "Secondary",
                     }
                 ).execute()
 
-                auth_debug("Profile created")
-
-            st.session_state.sb_session = oauth_session
-            auth_debug("LOGIN SUCCESS — SESSION SAVED")
-
-            # Remove verifier
-            components.html(
-                """
-                <script>
-                    localStorage.removeItem("pkce_verifier");
-                </script>
-                """,
-                height=0,
-            )
-
-            # Clear URL params
             st.query_params.clear()
             st.rerun()
 
         except Exception as e:
-            auth_debug("EXCEPTION DURING AUTH", str(e))
-            st.error(f"Authentication failed: {e}")
+            st.error(f"Google login failed: {e}")
             st.stop()
 
-    # --- If not logged in, show login UI ---
+    # If not logged in, show auth UI
     if not st.session_state.sb_session:
-
         st.markdown(
             '<div class="hero-container"><h1 style="margin:0;">🎓 AI Instructor Pro</h1>'
             '<p style="opacity:0.9;">The smartest way to master English essays</p></div>',
             unsafe_allow_html=True,
         )
 
-        app_url = "https://ai-instructor-pro.streamlit.app"
-        redirect_to = quote(app_url, safe="")
+        # Google login button now opens external login page
+        st.link_button(
+            "🌐 Login with Google",
+            "https://YOUR-LOGIN-PAGE-URL/login.html",
+            use_container_width=True,
+        )
 
-        # --- Google login ---
-        if st.button("🌐 Login with Google", use_container_width=True):
-
-            auth_debug("Google Login Button Clicked")
-
-            verifier, challenge = make_pkce_pair()
-
-            auth_debug("Generated PKCE verifier", verifier)
-            auth_debug("Generated PKCE challenge", challenge)
-
-            oauth_url = (
-                f"{SUPABASE_URL}/auth/v1/authorize"
-                f"?provider=google"
-                f"&redirect_to={redirect_to}"
-                f"&response_type=code"
-                f"&flow_type=pkce"
-                f"&code_challenge={challenge}"
-                f"&code_challenge_method=s256"
-            )
-
-            auth_debug("OAuth URL", oauth_url)
-
-            components.html(
-                f"""
-                <script>
-                    localStorage.setItem("pkce_verifier", {json.dumps(verifier)});
-                    window.top.location.href = {json.dumps(oauth_url)};
-                </script>
-                """,
-                height=0,
-            )
-            st.stop()
-
-        # ---- Email Sign In / Sign Up ----
-        with st.expander("🔐 User Sign In / Sign Up"):
+        with st.expander("🔐 User Sign In / Sign Up", expanded=True):
             tab_login, tab_signup = st.tabs(["Sign In", "Sign Up"])
 
             with tab_login:
@@ -601,12 +480,12 @@ def auth_gate():
                         )
                         st.session_state.sb_session = res.session
                         st.rerun()
-                    except Exception:
-                        st.error("Invalid email or password")
+                    except Exception as e:
+                        st.error(f"Invalid email or password: {e}")
 
             with tab_signup:
-                reg_name = st.text_input("Full Name", placeholder="Enter your name")
-                reg_age = st.number_input("Age", min_value=5, max_value=100, value=15)
+                reg_name = st.text_input("Full Name", placeholder="Enter your name", key="reg_name")
+                reg_age = st.number_input("Age", min_value=5, max_value=100, value=15, key="reg_age")
                 reg_lvl = st.selectbox(
                     "Education Level",
                     ["Primary", "Secondary", "Higher Secondary"],
@@ -642,7 +521,6 @@ def auth_gate():
 
         st.stop()
 
-    # --- Logged in ---
     user = st.session_state.sb_session.user
     return user.id, user.email, st.session_state.sb_session.access_token
 
@@ -753,13 +631,9 @@ Step Tutor Hint
         except Exception:
             st.info("No history yet.")
 
-    if st.button("Logout", use_container_width=True):
-        try:
-            supabase_admin.auth.sign_out()
-        except Exception:
-            pass
-        st.session_state.clear()
-        st.rerun()
+    if st.button("Logout", use_container_width=True):if st.button("Logout", use_container_width=True):
+    st.session_state.clear()
+    st.rerun()
 
 
 # ---------------- State Init ----------------
@@ -1164,6 +1038,7 @@ elif st.session_state.step == "DONE":
                 pass
             st.session_state.clear()
             st.rerun()
+
 
 
 
