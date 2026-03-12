@@ -362,9 +362,116 @@ def ollama_chat(messages, temperature=0.7, max_tokens=300):
     except Exception as e:
         return f"⚠️ Error: {str(e)}"
 
+def tokenize_with_spans(text):
+    tokens = []
+    for m in re.finditer(r"\w+|[^\w\s]", text):
+        tokens.append({
+            "token": m.group(0),
+            "start": m.start(),
+            "end": m.end()
+        })
+    return tokens
 
+def tokenize_with_spans(text):
+    tokens = []
+    for m in re.finditer(r"\w+|[^\w\s]", text):
+        tokens.append({
+            "token": m.group(0),
+            "start": m.start(),
+            "end": m.end()
+        })
+    return tokens
 
+def build_token_prompt(student_text, tokens):
+    numbered_tokens = "\n".join(
+        [f"{i}: {t['token']}" for i, t in enumerate(tokens)]
+    )
 
+    return f"""
+You are a strict proofreader.
+
+The student typed this paragraph:
+{student_text}
+
+Here is the numbered token list:
+{numbered_tokens}
+
+Return ONLY valid JSON in this exact format:
+{{
+  "spelling_token_indexes": [0, 3],
+  "grammar_token_ranges": [[4, 7], [10, 12]],
+  "corrected_text": "Corrected full paragraph here"
+}}
+
+Rules:
+- Return JSON only
+- No markdown
+- No explanation
+- spelling_token_indexes must contain indexes of individual misspelled tokens
+- grammar_token_ranges must contain [start_index, end_index] inclusive
+- corrected_text must be the full corrected paragraph
+- Use only indexes from the numbered token list
+""".strip()
+
+def render_token_highlighted_block(text, tokens, spelling_token_indexes, grammar_token_ranges):
+    char_labels = [None] * len(text)
+
+    for idx in spelling_token_indexes:
+        tok = tokens[idx]
+        for i in range(tok["start"], tok["end"]):
+            if 0 <= i < len(char_labels):
+                char_labels[i] = "spell"
+
+    for start_idx, end_idx in grammar_token_ranges:
+        for idx in range(start_idx, end_idx + 1):
+            tok = tokens[idx]
+            for i in range(tok["start"], tok["end"]):
+                if 0 <= i < len(char_labels) and char_labels[i] != "spell":
+                    char_labels[i] = "gram"
+
+    parts = []
+    current_label = None
+    buffer = []
+
+    for i, ch in enumerate(text):
+        label = char_labels[i]
+
+        if label != current_label:
+            if buffer:
+                segment = html.escape("".join(buffer))
+                if current_label == "spell":
+                    parts.append(f'<span class="hl_spell">{segment}</span>')
+                elif current_label == "gram":
+                    parts.append(f'<span class="hl_gram">{segment}</span>')
+                else:
+                    parts.append(segment)
+            buffer = [ch]
+            current_label = label
+        else:
+            buffer.append(ch)
+
+    if buffer:
+        segment = html.escape("".join(buffer))
+        if current_label == "spell":
+            parts.append(f'<span class="hl_spell">{segment}</span>')
+        elif current_label == "gram":
+            parts.append(f'<span class="hl_gram">{segment}</span>')
+        else:
+            parts.append(segment)
+
+    highlighted_html = "".join(parts)
+
+    return f"""
+<div class='msg-ai'>
+  <div class='small'><b>Feedback:</b>
+    <span style='color:#f97316'>Orange=Spelling</span>,
+    <span style='color:#eab308'>Yellow=Grammar</span>
+  </div>
+  <div style='background:white; padding:12px; border-radius:10px; border:1px solid #e2e8f0; margin-top:8px; white-space:pre-wrap;'>
+    {highlighted_html}
+  </div>
+</div>
+"""
 
 # ---------------- Auth Logic ----------------
 
@@ -880,38 +987,39 @@ elif st.session_state.step == "COLLECT_PART":
                 st.session_state.is_processing = True
                 st.rerun()
 
-        # ---------------- PHASE B: heavy processing runs AFTER rerun, with autorefresh OFF ----------------
+                # ---------------- PHASE B: heavy processing runs AFTER rerun, with autorefresh OFF ----------------
         if st.session_state.is_processing and st.session_state.pending_text is not None:
             student_text = st.session_state.pending_text
             late = remaining <= 0
-            
+
             with st.status("Tutor is reviewing your work...", expanded=True) as status:
                 st.write("🔍 Scanning for mistakes...")
-                mistakes = scan_for_highlights(student_text)
+
+                analysis = scan_tokens_with_hf(student_text)
+                tokens = analysis["tokens"]
+                spelling_token_indexes = analysis["spelling_token_indexes"]
+                grammar_token_ranges = analysis["grammar_token_ranges"]
+                corrected = analysis["corrected_text"]
+
                 st.write("STUDENT TEXT:", student_text)
-                st.write("MISTAKES:", mistakes)
+                st.write("TOKEN ANALYSIS:", analysis)
+
                 with debug_box.container():
                     st.warning("DEBUG MODE")
                     st.write("Raw response:", st.session_state.get("debug_raw_highlight", "not available"))
-                    st.write("Parsed mistakes:", st.session_state.get("debug_parsed_mistakes", []))
+                    st.write("Parsed mistakes:", st.session_state.get("debug_parsed_mistakes", {}))
                     st.write("JSON error:", st.session_state.get("debug_json_error", "none"))
                     st.write("HF full response:", st.session_state.get("debug_hf_full_response", {}))
+
                 with st.sidebar:
                     st.markdown("### Debug")
                     st.write("Raw:", st.session_state.get("debug_raw_highlight", "none"))
-                    st.write("Parsed:", st.session_state.get("debug_parsed_mistakes", []))
+                    st.write("Parsed:", st.session_state.get("debug_parsed_mistakes", {}))
                     st.write("JSON error:", st.session_state.get("debug_json_error", "none"))
                     st.write("HF full response:", st.session_state.get("debug_hf_full_response", {}))
+
                 st.write("✍️ Refining your paragraph...")
-                corrected = ollama_chat(
-                    [
-                        {
-                            "role": "user",
-                            "content": f"Correct this {current_part}: {student_text}",
-                        }
-                    ]
-                )
-        
+
                 # DB save
                 if st.session_state.class_id:
                     try:
@@ -927,27 +1035,35 @@ elif st.session_state.step == "COLLECT_PART":
                         db.table("submissions").insert(payload).execute()
                     except Exception:
                         st.warning("Note: Saved locally (DB Sync Issue)")
-        
+
                 status.update(label="Feedback Ready!", state="complete", expanded=False)
-        
+
             # Chat updates
             st.session_state.chat.append({"role": "user", "content": student_text})
             st.session_state.chat.append(
-                {"role": "ai_html", "content": render_highlighted_block(student_text, mistakes)}
+                {
+                    "role": "ai_html",
+                    "content": render_token_highlighted_block(
+                        student_text,
+                        tokens,
+                        spelling_token_indexes,
+                        grammar_token_ranges
+                    )
+                }
             )
             st.session_state.corrected_parts[current_part] = corrected
             st.session_state.chat.append({"role": "ai", "content": f"**Refined Version:**\n\n{corrected}"})
-        
+
             # Advance part
             st.session_state.part_i += 1
             st.session_state.part_start_time = None
             if st.session_state.part_i >= len(PARTS):
                 st.session_state.step = "DONE"
-        
+
             # Clear locks BEFORE rerun
             st.session_state.pending_text = None
             st.session_state.is_processing = False
-        
+
             st.rerun()
 
 
@@ -1101,6 +1217,7 @@ elif st.session_state.step == "DONE":
                 pass
             st.session_state.clear()
             st.rerun()
+
 
 
 
