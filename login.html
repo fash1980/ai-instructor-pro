@@ -16,15 +16,19 @@
     const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     document.getElementById("googleBtn").addEventListener("click", async () => {
-      await client.auth.signInWithOAuth({
+      const { data, error } = await client.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: "https://fash1980.github.io/ai-instructor-pro/callback.html"
+          redirectTo: "https://fash1980.github.io/ai-instructor-pro/callback.html",
           queryParams: {
-          prompt: "select_account"
-        }
+            prompt: "select_account"
+          }
         }
       });
+
+      if (error) {
+        console.error("OAuth error:", error);
+      }
     });
   </script>
 </body>
