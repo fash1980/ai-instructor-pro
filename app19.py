@@ -824,6 +824,7 @@ elif st.session_state.step == "COLLECT_PART":
         with st.form(key=f"write_form_{st.session_state.part_i}", clear_on_submit=False):
                     # 2. Add this HTML/JS block for the LIVE COUNTER
             components.html(f"""
+                <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded" rel="stylesheet">
                 <div style="font-family: sans-serif; color: #64748b; font-size: 14px; margin-bottom: 5px;">
                     Word Count: <span id="wordCount">0</span> / {min_w}
                 </div>
@@ -1131,6 +1132,7 @@ elif st.session_state.step == "DONE":
                 pass
             st.session_state.clear()
             st.rerun()
+
 
 
 
