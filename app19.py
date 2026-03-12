@@ -389,6 +389,10 @@ Line 2 must start with:
 CORRECTED:
 
 Rules:
+- Check each and every word for spelling and use [[S]] tag to mark start of wrong spelling word and [[/S]] tag to mark the end of wrong spelling word.
+- Check Grammar syntax very thoroughly and use and use [[G]] tag to mark start of wrong spelling word and [[/G]] tag to mark the end of wrong spelling word.
+- Revise the whole student written paragraph 3 times so no spelling mistake is left unchecked.
+- Revise the whole student written paragraph 3 times so no english grammar mistake is left unchecked.
 - In MARKED, keep the student's original paragraph exactly the same, only add tags
 - Every wrong word or wrong phrase must be tagged
 - Do not leave any mistake untagged
@@ -1261,6 +1265,7 @@ elif st.session_state.step == "DONE":
                 pass
             st.session_state.clear()
             st.rerun()
+
 
 
 
