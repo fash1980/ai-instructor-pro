@@ -839,7 +839,8 @@ elif st.session_state.step == "COLLECT_PART":
                     font-size:14px;
                     font-family:sans-serif;
                 ">
-                    ✨ You are doing great. Please type in your own words so you can improve your writing skills.
+                    <span class="material-symbols-rounded" style="vertical-align:middle;">edit</span>
+                    Please type in your own words so you can improve your writing skills.
                 </div>
             
                 <script>
@@ -1130,6 +1131,7 @@ elif st.session_state.step == "DONE":
                 pass
             st.session_state.clear()
             st.rerun()
+
 
 
 
