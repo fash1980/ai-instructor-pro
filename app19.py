@@ -707,11 +707,11 @@ with st.sidebar:
         disabled=True,  # <--- THIS LOCKS THE DROP DOWN
         help="This level is fixed based on your profile settings.",
     )
-    st.markdown("### 🐞 Debug Info")
-    st.write("Raw:", st.session_state.get("debug_raw_highlight", "none"))
-    st.write("Parsed:", st.session_state.get("debug_parsed_mistakes", {}))
-    st.write("Parse status:", st.session_state.get("debug_json_error", "none"))
-    st.write("HF full response:", st.session_state.get("debug_hf_full_response", {}))
+    #st.markdown("### 🐞 Debug Info")
+    #st.write("Raw:", st.session_state.get("debug_raw_highlight", "none"))
+    #st.write("Parsed:", st.session_state.get("debug_parsed_mistakes", {}))
+    #st.write("Parse status:", st.session_state.get("debug_json_error", "none"))
+    #st.write("HF full response:", st.session_state.get("debug_hf_full_response", {}))
     
     st.write("Finish reason:", st.session_state.get("debug_finish_reason", "none"))
     st.write("Message:", st.session_state.get("debug_message", {}))
@@ -1266,6 +1266,7 @@ elif st.session_state.step == "DONE":
                 pass
             st.session_state.clear()
             st.rerun()
+
 
 
 
