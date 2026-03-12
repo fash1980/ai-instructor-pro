@@ -338,31 +338,41 @@ def ollama_chat(messages, temperature=0.7, max_tokens=300):
         if "error" in data:
             return f"⚠️ API Error: {data['error']}"
 
-        if "choices" not in data:
+        if "choices" not in data or not data["choices"]:
             return f"⚠️ Error: Unexpected response: {data}"
 
-        msg = data["choices"][0].get("message", {})
+        choice = data["choices"][0]
+        msg = choice.get("message", {}) or {}
 
-        content = msg.get("content")
+        finish_reason = choice.get("finish_reason", "unknown")
+        st.session_state["debug_finish_reason"] = finish_reason
+        st.session_state["debug_message"] = msg
+
+        content = msg.get("content", None)
+        reasoning = msg.get("reasoning", None)
 
         # ---- CASE 1 : content is normal string
-        if isinstance(content, str):
+        if isinstance(content, str) and content.strip():
             return content.strip()
 
         # ---- CASE 2 : content is list of blocks
         if isinstance(content, list):
             texts = []
-
             for block in content:
                 if isinstance(block, dict):
-                    if "text" in block:
-                        texts.append(block["text"])
-                    elif block.get("type") == "text" and "text" in block:
-                        texts.append(block["text"])
+                    txt = block.get("text")
+                    if isinstance(txt, str) and txt.strip():
+                        texts.append(txt.strip())
 
-            return "\n".join(texts).strip()
+            if texts:
+                return "\n".join(texts).strip()
 
-        return "⚠️ Error: No readable content"
+        # ---- CASE 3 : some models return reasoning instead of content
+        if isinstance(reasoning, str) and reasoning.strip():
+            return reasoning.strip()
+
+        # ---- CASE 4 : nothing readable found
+        return f"⚠️ Error: No readable content | finish_reason={finish_reason}"
 
     except Exception as e:
         return f"⚠️ Error: {str(e)}"
@@ -1301,6 +1311,7 @@ elif st.session_state.step == "DONE":
                 pass
             st.session_state.clear()
             st.rerun()
+
 
 
 
