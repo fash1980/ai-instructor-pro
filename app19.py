@@ -563,7 +563,7 @@ def auth_gate():
 
 
             google_email = (user.email or "").strip().lower()
-            st.write("Google email from token:", google_email)
+            #st.write("Google email from token:", google_email)
             
             prof = (
                 supabase_service.table("profiles")
@@ -1274,6 +1274,7 @@ elif st.session_state.step == "DONE":
                 pass
             st.session_state.clear()
             st.rerun()
+
 
 
 
