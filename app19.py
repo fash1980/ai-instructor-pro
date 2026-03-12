@@ -412,41 +412,40 @@ def auth_gate():
     if access_token and not st.session_state.sb_session:
         try:
             user_res = supabase_admin.auth.get_user(access_token)
-
+    
             if not user_res or not user_res.user:
                 st.error("Invalid Google login token.")
                 st.stop()
-            
+    
             user = user_res.user
-
+            google_email = user.email
+    
+            if not google_email:
+                st.error("Google account email not found.")
+                st.stop()
+    
+            # Check if this email already exists in profiles
+            prof = (
+                supabase_admin.table("profiles")
+                .select("id, email, education_level, full_name")
+                .eq("email", google_email)
+                .limit(1)
+                .execute()
+            )
+    
+            if not prof.data:
+                st.error("No account found for this Google email. Please sign up first using the Sign Up form.")
+                st.stop()
+    
+            # Existing account found → allow login
             st.session_state.sb_session = SimpleNamespace(
                 access_token=access_token,
                 user=user
             )
-
-            # Create profile if missing
-            prof = (
-                supabase_admin.table("profiles")
-                .select("id")
-                .eq("id", user.id)
-                .limit(1)
-                .execute()
-            )
-
-            if not prof.data:
-                supabase_admin.table("profiles").insert(
-                    {
-                        "id": user.id,
-                        "full_name": user.user_metadata.get("full_name", "Google Learner"),
-                        "email": user.email,
-                        "age": 15,
-                        "education_level": "Secondary",
-                    }
-                ).execute()
-
+    
             st.query_params.clear()
             st.rerun()
-
+    
         except Exception as e:
             st.error(f"Google login failed: {e}")
             st.stop()
@@ -1038,6 +1037,7 @@ elif st.session_state.step == "DONE":
                 pass
             st.session_state.clear()
             st.rerun()
+
 
 
 
