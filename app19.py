@@ -44,6 +44,10 @@ if "debug_log" not in st.session_state:
 
 if "debug_last" not in st.session_state:
     st.session_state.debug_last = {}
+
+if "done_celebrated" not in st.session_state:
+    st.session_state.done_celebrated = False
+    
 # ---------------- Supabase Setup ----------------
 SUPABASE_URL = st.secrets["SUPABASE_URL"]
 SUPABASE_ANON_KEY = st.secrets["SUPABASE_ANON_KEY"]
@@ -1118,7 +1122,10 @@ elif st.session_state.step == "COLLECT_PART":
 
 # ---------------- STEP 3: Done ----------------
 elif st.session_state.step == "DONE":
-    st.balloons()
+    if not st.session_state.done_celebrated:
+        st.balloons()
+        st.session_state.done_celebrated = True
+
     st.success("🎉 Essay Complete! Clapping for you!")
 
     # Update End Time & Badge
@@ -1266,6 +1273,7 @@ elif st.session_state.step == "DONE":
                 pass
             st.session_state.clear()
             st.rerun()
+
 
 
 
