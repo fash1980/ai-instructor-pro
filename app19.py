@@ -42,8 +42,9 @@ float_init()
 # ---------------- Supabase Setup ----------------
 SUPABASE_URL = st.secrets["SUPABASE_URL"]
 SUPABASE_ANON_KEY = st.secrets["SUPABASE_ANON_KEY"]
+SUPABASE_SERVICE_ROLE_KEY = st.secrets["SUPABASE_SERVICE_ROLE_KEY"]
 supabase_admin = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
-
+supabase_service = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
 def user_client(access_token: str):
     client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
@@ -425,9 +426,10 @@ def auth_gate():
             st.write("Google email from token:", google_email)
             
             prof = (
-                supabase_admin.table("profiles")
+                supabase_service.table("profiles")
                 .select("id, email, full_name")
                 .eq("email", google_email)
+                .limit(1)
                 .execute()
             )
             
@@ -1049,6 +1051,7 @@ elif st.session_state.step == "DONE":
                 pass
             st.session_state.clear()
             st.rerun()
+
 
 
 
