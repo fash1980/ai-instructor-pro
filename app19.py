@@ -87,7 +87,37 @@ st.markdown(
     text-align: center;
     color: white;
 }
+/* Wrapper for login area */
+.auth-wrapper {
+    max-width: 520px;
+    margin: 28px auto 0 auto;
+}
 
+/* Make Streamlit link button prettier */
+.stLinkButton a {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 14px 18px !important;
+    border-radius: 16px !important;
+    background: white !important;
+    color: #0f172a !important;
+    border: 1px solid #e2e8f0 !important;
+    text-decoration: none !important;
+    font-weight: 600 !important;
+    font-size: 17px !important;
+    box-shadow: 0 10px 25px rgba(15, 23, 42, 0.06);
+    transition: all 0.2s ease;
+    margin-top: 18px !important;
+}
+
+.stLinkButton a:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 30px rgba(99, 102, 241, 0.16);
+    border-color: #c7d2fe !important;
+    background: #f8faff !important;
+}
 /* Centering the Login Box */
 .auth-wrapper {
     display: flex;
@@ -1041,6 +1071,7 @@ elif st.session_state.step == "DONE":
                 pass
             st.session_state.clear()
             st.rerun()
+
 
 
 
