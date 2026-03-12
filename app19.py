@@ -1029,9 +1029,7 @@ elif st.session_state.step == "COLLECT_PART":
                 st.write("🔍 Scanning for mistakes...")
 
                 analysis = scan_tokens_with_hf(student_text)
-                tokens = analysis["tokens"]
-                spelling_token_indexes = analysis["spelling_token_indexes"]
-                grammar_token_ranges = analysis["grammar_token_ranges"]
+                marked_text = analysis["marked_text"]
                 corrected = analysis["corrected_text"]
 
                 st.write("STUDENT TEXT:", student_text)
@@ -1071,12 +1069,7 @@ elif st.session_state.step == "COLLECT_PART":
             st.session_state.chat.append(
                 {
                     "role": "ai_html",
-                    "content": render_token_highlighted_block(
-                        student_text,
-                        tokens,
-                        spelling_token_indexes,
-                        grammar_token_ranges
-                    )
+                    "content": render_marked_highlighted_block(marked_text)
                 }
             )
             st.session_state.corrected_parts[current_part] = corrected
@@ -1245,6 +1238,7 @@ elif st.session_state.step == "DONE":
                 pass
             st.session_state.clear()
             st.rerun()
+
 
 
 
