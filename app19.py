@@ -719,8 +719,8 @@ with st.sidebar:
     
     #st.write("Finish reason:", st.session_state.get("debug_finish_reason", "none"))
     #st.write("Message:", st.session_state.get("debug_message", {}))
-    if st.session_state.debug_last:
-        st.json(st.session_state.debug_last)
+    #if st.session_state.debug_last:
+        #st.json(st.session_state.debug_last)
     st.session_state.strictness = st.slider("Strictness Level", 0, 3, 2)
 
     # ✅ Refined step-by-step Tutor Hint box (matches current_part)
@@ -1274,6 +1274,7 @@ elif st.session_state.step == "DONE":
                 pass
             st.session_state.clear()
             st.rerun()
+
 
 
 
