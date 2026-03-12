@@ -413,11 +413,11 @@ def auth_gate():
         try:
             user_res = supabase_admin.auth.get_user(access_token)
 
-        if not user_res or not user_res.user:
-            st.error("Invalid Google login token.")
-            st.stop()
-        
-        user = user_res.user
+            if not user_res or not user_res.user:
+                st.error("Invalid Google login token.")
+                st.stop()
+            
+            user = user_res.user
 
             st.session_state.sb_session = SimpleNamespace(
                 access_token=access_token,
@@ -1038,6 +1038,7 @@ elif st.session_state.step == "DONE":
                 pass
             st.session_state.clear()
             st.rerun()
+
 
 
 
