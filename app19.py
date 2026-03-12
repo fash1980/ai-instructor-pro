@@ -380,10 +380,7 @@ def render_highlighted_block(text, mistakes):
 
 
 # ---------------- Auth Logic ----------------
-import os, base64, hashlib, secrets, time
-import streamlit as st
-import streamlit.components.v1 as components
-import extra_streamlit_components as stx
+
 
 
 def _b64url(b: bytes) -> str:
@@ -1073,6 +1070,7 @@ elif st.session_state.step == "DONE":
                 pass
             st.session_state.clear()
             st.rerun()
+
 
 
 
