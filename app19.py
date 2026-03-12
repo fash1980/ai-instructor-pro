@@ -363,125 +363,7 @@ def ollama_chat(messages, temperature=0.7, max_tokens=300):
         return f"⚠️ Error: {str(e)}"
 
 
-def scan_for_highlights(student_text):
-    prompt = f"""
-You are a strict proofreader.
 
-Find spelling and grammar mistakes in the student's paragraph.
-
-Return ONLY valid JSON in this exact format:
-[
-  {{"wrong": "electrong", "type": "SPELLING", "fix": "electronic"}},
-  {{"wrong": "machine", "type": "GRAMMAR", "fix": "machines"}}
-]
-
-Rules:
-- type must be either "SPELLING" or "GRAMMAR"
-- wrong must match the exact text found in the student's paragraph
-- do not include any explanation
-- do not wrap in markdown
-- return only JSON
-
-TEXT:
-{student_text}
-""".strip()
-
-    raw = ollama_chat(
-        [
-            {
-                "role": "system",
-                "content": "Return only valid JSON. No markdown. No explanation."
-            },
-            {
-                "role": "user",
-                "content": prompt
-            }
-        ],
-        temperature=0.0,
-        max_tokens=250
-    )
-
-    st.session_state["debug_raw_highlight"] = raw
-
-    try:
-        cleaned = raw.strip()
-
-        if cleaned.startswith("⚠️ Error"):
-            st.session_state["debug_parsed_mistakes"] = []
-            st.session_state["debug_json_error"] = cleaned
-            return []
-
-        cleaned = re.sub(r"^```json\s*", "", cleaned, flags=re.IGNORECASE)
-        cleaned = re.sub(r"^```\s*", "", cleaned)
-        cleaned = re.sub(r"\s*```$", "", cleaned)
-
-        match = re.search(r"\[\s*.*\s*\]", cleaned, flags=re.DOTALL)
-        if match:
-            cleaned = match.group(0)
-
-        data = json.loads(cleaned)
-
-        mistakes = []
-        for item in data:
-            wrong = str(item.get("wrong", "")).strip()
-            mtype = str(item.get("type", "")).strip().upper()
-            fix = str(item.get("fix", "")).strip()
-
-            if wrong and mtype in ["SPELLING", "GRAMMAR"] and wrong.lower() in student_text.lower():
-                mistakes.append({
-                    "wrong": wrong,
-                    "type": mtype,
-                    "fix": fix
-                })
-
-        st.session_state["debug_parsed_mistakes"] = mistakes
-        st.session_state["debug_json_error"] = "none"
-        return mistakes
-
-    except Exception as e:
-        st.session_state["debug_parsed_mistakes"] = []
-        st.session_state["debug_json_error"] = str(e)
-        return []
-
-
-def render_highlighted_block(text, mistakes):
-    temp_text = html.escape(text)
-
-    mistakes = sorted(mistakes, key=lambda x: len(x.get("wrong", "")), reverse=True)
-    used = set()
-
-    for m in mistakes:
-        wrong_word = (m.get("wrong") or "").strip()
-        mtype = (m.get("type") or "").strip().upper()
-
-        if not wrong_word:
-            continue
-
-        key = wrong_word.lower()
-        if key in used:
-            continue
-
-        css = "hl_spell" if mtype == "SPELLING" else "hl_gram"
-
-        pattern = re.compile(re.escape(wrong_word), flags=re.IGNORECASE)
-        temp_text = pattern.sub(
-            lambda match: f'<span class="{css}">{match.group(0)}</span>',
-            temp_text
-        )
-
-        used.add(key)
-
-    return f"""
-<div class='msg-ai'>
-  <div class='small'><b>Feedback:</b>
-    <span style='color:#f97316'>Orange=Spelling</span>,
-    <span style='color:#eab308'>Yellow=Grammar</span>
-  </div>
-  <div style='background:white; padding:12px; border-radius:10px; border:1px solid #e2e8f0; margin-top:8px; white-space:pre-wrap;'>
-    {temp_text}
-  </div>
-</div>
-"""
 
 
 # ---------------- Auth Logic ----------------
@@ -1219,6 +1101,7 @@ elif st.session_state.step == "DONE":
                 pass
             st.session_state.clear()
             st.rerun()
+
 
 
 
