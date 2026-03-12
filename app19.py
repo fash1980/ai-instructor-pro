@@ -319,21 +319,43 @@ def ollama_chat(messages, temperature=0.7, max_tokens=300):
             json={
                 "model": hf_model,
                 "messages": messages,
-                "temperature": 0.7,
-                "max_tokens": 300
+                "temperature": temperature,
+                "max_tokens": max_tokens,
             },
             timeout=120,
         )
 
         data = r.json()
-
-        if "choices" in data and len(data["choices"]) > 0:
-            return data["choices"][0]["message"]["content"].strip()
+        st.session_state["debug_hf_full_response"] = data
 
         if "error" in data:
             return f"⚠️ API Error: {data['error']}"
 
-        return "⚠️ Error: Unexpected API response."
+        if "choices" in data and len(data["choices"]) > 0:
+            msg = data["choices"][0].get("message", {})
+
+            # normal OpenAI-style
+            if isinstance(msg.get("content"), str):
+                return msg["content"].strip()
+
+            # some providers return content as list of blocks
+            if isinstance(msg.get("content"), list):
+                parts = []
+                for part in msg["content"]:
+                    if isinstance(part, dict):
+                        if part.get("type") == "text" and "text" in part:
+                            parts.append(part["text"])
+                        elif "content" in part:
+                            parts.append(str(part["content"]))
+                return "\n".join(parts).strip()
+
+            # fallback if text appears elsewhere
+            if "text" in msg:
+                return str(msg["text"]).strip()
+
+            return f"⚠️ Error: No readable content in model response. Response message: {msg}"
+
+        return f"⚠️ Error: Unexpected API response: {data}"
 
     except Exception as e:
         return f"⚠️ Error: {str(e)}"
@@ -366,7 +388,7 @@ TEXT:
         [
             {
                 "role": "system",
-                "content": "You are a strict JSON generator. Return only valid JSON. No markdown. No explanation."
+                "content": "Return only valid JSON. No markdown. No explanation."
             },
             {
                 "role": "user",
@@ -376,18 +398,22 @@ TEXT:
         temperature=0.0,
         max_tokens=250
     )
+
     st.session_state["debug_raw_highlight"] = raw
-    
+
     try:
         cleaned = raw.strip()
 
-        # remove markdown fences if present
+        if cleaned.startswith("⚠️ Error"):
+            st.session_state["debug_parsed_mistakes"] = []
+            st.session_state["debug_json_error"] = cleaned
+            return []
+
         cleaned = re.sub(r"^```json\s*", "", cleaned, flags=re.IGNORECASE)
         cleaned = re.sub(r"^```\s*", "", cleaned)
         cleaned = re.sub(r"\s*```$", "", cleaned)
 
-        # extract first JSON array if extra text exists
-        match = re.search(r"\[\s*{.*}\s*\]", cleaned, flags=re.DOTALL)
+        match = re.search(r"\[\s*.*\s*\]", cleaned, flags=re.DOTALL)
         if match:
             cleaned = match.group(0)
 
@@ -399,13 +425,12 @@ TEXT:
             mtype = str(item.get("type", "")).strip().upper()
             fix = str(item.get("fix", "")).strip()
 
-            if wrong and mtype in ["SPELLING", "GRAMMAR"]:
-                if wrong.lower() in student_text.lower():
-                    mistakes.append({
-                        "wrong": wrong,
-                        "type": mtype,
-                        "fix": fix
-                    })
+            if wrong and mtype in ["SPELLING", "GRAMMAR"] and wrong.lower() in student_text.lower():
+                mistakes.append({
+                    "wrong": wrong,
+                    "type": mtype,
+                    "fix": fix
+                })
 
         st.session_state["debug_parsed_mistakes"] = mistakes
         st.session_state["debug_json_error"] = "none"
@@ -986,11 +1011,13 @@ elif st.session_state.step == "COLLECT_PART":
                     st.write("Raw response:", st.session_state.get("debug_raw_highlight", "not available"))
                     st.write("Parsed mistakes:", st.session_state.get("debug_parsed_mistakes", []))
                     st.write("JSON error:", st.session_state.get("debug_json_error", "none"))
+                    st.write("HF full response:", st.session_state.get("debug_hf_full_response", {}))
                 with st.sidebar:
                     st.markdown("### Debug")
                     st.write("Raw:", st.session_state.get("debug_raw_highlight", "none"))
                     st.write("Parsed:", st.session_state.get("debug_parsed_mistakes", []))
                     st.write("JSON error:", st.session_state.get("debug_json_error", "none"))
+                    st.write("HF full response:", st.session_state.get("debug_hf_full_response", {}))
                 st.write("✍️ Refining your paragraph...")
                 corrected = ollama_chat(
                     [
@@ -1190,6 +1217,7 @@ elif st.session_state.step == "DONE":
                 pass
             st.session_state.clear()
             st.rerun()
+
 
 
 
