@@ -393,9 +393,7 @@ TEXT:
 def render_highlighted_block(text, mistakes):
     temp_text = html.escape(text)
 
-    # longest first
-    mistakes = sorted(mistakes, key=lambda x: len(x["wrong"]), reverse=True)
-
+    mistakes = sorted(mistakes, key=lambda x: len(x.get("wrong", "")), reverse=True)
     used = set()
 
     for m in mistakes:
@@ -411,7 +409,7 @@ def render_highlighted_block(text, mistakes):
 
         css = "hl_spell" if mtype == "SPELLING" else "hl_gram"
 
-        pattern = re.compile(rf"(?i)\b{re.escape(wrong_word)}\b")
+        pattern = re.compile(re.escape(wrong_word), flags=re.IGNORECASE)
         temp_text = pattern.sub(
             lambda match: f'<span class="{css}">{match.group(0)}</span>',
             temp_text
@@ -950,59 +948,57 @@ elif st.session_state.step == "COLLECT_PART":
         if st.session_state.is_processing and st.session_state.pending_text is not None:
             student_text = st.session_state.pending_text
             late = remaining <= 0
-            mistakes = scan_for_highlights(student_text)
-            st.write("DEBUG mistakes:", mistakes)
             with st.status("Tutor is reviewing your work...", expanded=True) as status:
-                st.write("🔍 Scanning for mistakes...")
-                mistakes = scan_for_highlights(student_text)
-
-                st.write("✍️ Refining your paragraph...")
-                corrected = ollama_chat(
-                    [
-                        {
-                            "role": "user",
-                            "content": f"Correct this {current_part}: {student_text}",
-                        }
-                    ]
-                )
-
-                # DB save
-                if st.session_state.class_id:
-                    try:
-                        payload = {
-                            "class_id": st.session_state.class_id,
-                            "user_id": user_id,
-                            "part": current_part,
-                            "student_text": student_text,
-                            "corrected_text": corrected,
-                            "word_count": word_count(student_text),
-                            "late": late,
-                        }
-                        db.table("submissions").insert(payload).execute()
-                    except Exception:
-                        st.warning("Note: Saved locally (DB Sync Issue)")
-
-                status.update(label="Feedback Ready!", state="complete", expanded=False)
-
-            # Chat updates
-            st.session_state.chat.append({"role": "user", "content": student_text})
-            st.session_state.chat.append(
-                {"role": "ai_html", "content": render_highlighted_block(student_text, mistakes)}
+            st.write("🔍 Scanning for mistakes...")
+            mistakes = scan_for_highlights(student_text)
+    
+            st.write("✍️ Refining your paragraph...")
+            corrected = ollama_chat(
+                [
+                    {
+                        "role": "user",
+                        "content": f"Correct this {current_part}: {student_text}",
+                    }
+                ]
             )
-            st.session_state.corrected_parts[current_part] = corrected
-            st.session_state.chat.append({"role": "ai", "content": f"**Refined Version:**\n\n{corrected}"})
-
-            # Advance part
-            st.session_state.part_i += 1
-            st.session_state.part_start_time = None
-            if st.session_state.part_i >= len(PARTS):
-                st.session_state.step = "DONE"
-
-            # Clear locks BEFORE rerun
-            st.session_state.pending_text = None
-            st.session_state.is_processing = False
-
-            st.rerun()
+    
+            # DB save
+            if st.session_state.class_id:
+                try:
+                    payload = {
+                        "class_id": st.session_state.class_id,
+                        "user_id": user_id,
+                        "part": current_part,
+                        "student_text": student_text,
+                        "corrected_text": corrected,
+                        "word_count": word_count(student_text),
+                        "late": late,
+                    }
+                    db.table("submissions").insert(payload).execute()
+                except Exception:
+                    st.warning("Note: Saved locally (DB Sync Issue)")
+    
+            status.update(label="Feedback Ready!", state="complete", expanded=False)
+    
+        # Chat updates
+        st.session_state.chat.append({"role": "user", "content": student_text})
+        st.session_state.chat.append(
+            {"role": "ai_html", "content": render_highlighted_block(student_text, mistakes)}
+        )
+        st.session_state.corrected_parts[current_part] = corrected
+        st.session_state.chat.append({"role": "ai", "content": f"**Refined Version:**\n\n{corrected}"})
+    
+        # Advance part
+        st.session_state.part_i += 1
+        st.session_state.part_start_time = None
+        if st.session_state.part_i >= len(PARTS):
+            st.session_state.step = "DONE"
+    
+        # Clear locks BEFORE rerun
+        st.session_state.pending_text = None
+        st.session_state.is_processing = False
+    
+        st.rerun()
 
 
 # ---------------- STEP 3: Done ----------------
@@ -1155,6 +1151,7 @@ elif st.session_state.step == "DONE":
                 pass
             st.session_state.clear()
             st.rerun()
+
 
 
 
