@@ -433,20 +433,10 @@ def auth_gate():
                 .execute()
             )
             
+            # Temporary debug
+            st.write("Google email from token:", google_email)
             st.write("Matched profiles:", prof.data)
-            if not google_email:
-                st.error("Google account email not found.")
-                st.stop()
-    
-            # Check if this email already exists in profiles
-            prof = (
-                supabase_admin.table("profiles")
-                .select("id, email, education_level, full_name")
-                .eq("email", google_email)
-                .limit(1)
-                .execute()
-            )
-    
+            
             if not prof.data:
                 st.error("No account found for this Google email. Please sign up first using the Sign Up form.")
                 st.stop()
@@ -456,7 +446,7 @@ def auth_gate():
                 access_token=access_token,
                 user=user
             )
-    
+            
             st.query_params.clear()
             st.rerun()
     
@@ -1051,6 +1041,7 @@ elif st.session_state.step == "DONE":
                 pass
             st.session_state.clear()
             st.rerun()
+
 
 
 
