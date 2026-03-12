@@ -979,6 +979,8 @@ elif st.session_state.step == "COLLECT_PART":
             with st.status("Tutor is reviewing your work...", expanded=True) as status:
                 st.write("🔍 Scanning for mistakes...")
                 mistakes = scan_for_highlights(student_text)
+                st.write("STUDENT TEXT:", student_text)
+                st.write("MISTAKES:", mistakes)
                 with debug_box.container():
                     st.warning("DEBUG MODE")
                     st.write("Raw response:", st.session_state.get("debug_raw_highlight", "not available"))
@@ -1188,6 +1190,7 @@ elif st.session_state.step == "DONE":
                 pass
             st.session_state.clear()
             st.rerun()
+
 
 
 
