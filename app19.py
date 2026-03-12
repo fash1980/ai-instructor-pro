@@ -362,10 +362,37 @@ TEXT:
 {student_text}
 """.strip()
 
-    raw = ollama_chat([{"role": "user", "content": prompt}])
-
+    raw = ollama_chat(
+        [
+            {
+                "role": "system",
+                "content": "You are a strict JSON generator. Return only valid JSON. No markdown. No explanation."
+            },
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ],
+        temperature=0.0,
+        max_tokens=250
+    )
+    st.session_state["debug_raw_highlight"] = raw
+    
     try:
-        data = json.loads(raw)
+        cleaned = raw.strip()
+
+        # remove markdown fences if present
+        cleaned = re.sub(r"^```json\s*", "", cleaned, flags=re.IGNORECASE)
+        cleaned = re.sub(r"^```\s*", "", cleaned)
+        cleaned = re.sub(r"\s*```$", "", cleaned)
+
+        # extract first JSON array if extra text exists
+        match = re.search(r"\[\s*{.*}\s*\]", cleaned, flags=re.DOTALL)
+        if match:
+            cleaned = match.group(0)
+
+        data = json.loads(cleaned)
+
         mistakes = []
         for item in data:
             wrong = str(item.get("wrong", "")).strip()
@@ -373,18 +400,18 @@ TEXT:
             fix = str(item.get("fix", "")).strip()
 
             if wrong and mtype in ["SPELLING", "GRAMMAR"]:
-                mistakes.append({
-                    "wrong": wrong,
-                    "type": mtype,
-                    "fix": fix
-                })
+                if wrong.lower() in student_text.lower():
+                    mistakes.append({
+                        "wrong": wrong,
+                        "type": mtype,
+                        "fix": fix
+                    })
 
-        st.session_state["debug_raw_highlight"] = raw
         st.session_state["debug_parsed_mistakes"] = mistakes
+        st.session_state["debug_json_error"] = "none"
         return mistakes
 
     except Exception as e:
-        st.session_state["debug_raw_highlight"] = raw
         st.session_state["debug_parsed_mistakes"] = []
         st.session_state["debug_json_error"] = str(e)
         return []
@@ -1161,6 +1188,7 @@ elif st.session_state.step == "DONE":
                 pass
             st.session_state.clear()
             st.rerun()
+
 
 
 
