@@ -810,6 +810,12 @@ if "step" not in st.session_state:
             "is_processing": False,
             "pending_text": None,
         "is_teaching": False,
+
+            # NEW
+            "attempt_counts": {},              # track attempts per section
+            "latest_feedback_hint": {},        # hint text for current section
+            "section_passed": {},              # whether current section is correct
+            "needs_retry": False,              # whether to keep same section open
         }
     )
 
