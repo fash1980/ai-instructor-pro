@@ -435,7 +435,19 @@ def parse_marked_response(raw, student_text):
         "marked_text": marked_text,
         "corrected_text": corrected_text
     }
-
+def extract_hints(marked_text):
+    hints = []
+    # Check for tagged spelling mistakes
+    spellings = re.findall(r'\[\[S\](.*?)\[\[/S\]\]', marked_text)
+    for word in spellings:
+        hints.append(f"Spelling mistake: {word}")
+    
+    # Check for grammar mistakes
+    grammars = re.findall(r'\[\[G\](.*?)\[\[/G\]\]', marked_text)
+    for phrase in grammars:
+        hints.append(f"Grammar mistake: {phrase}")
+    
+    return hints
 
 def render_marked_highlighted_block(marked_text):
     safe = html.escape(marked_text)
