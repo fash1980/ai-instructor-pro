@@ -435,19 +435,7 @@ def parse_marked_response(raw, student_text):
         "marked_text": marked_text,
         "corrected_text": corrected_text
     }
-def extract_hints(marked_text):
-    hints = []
-    # Check for tagged spelling mistakes
-    spellings = re.findall(r'\[\[S\](.*?)\[\[/S\]\]', marked_text)
-    for word in spellings:
-        hints.append(f"Spelling mistake: {word}")
-    
-    # Check for grammar mistakes
-    grammars = re.findall(r'\[\[G\](.*?)\[\[/G\]\]', marked_text)
-    for phrase in grammars:
-        hints.append(f"Grammar mistake: {phrase}")
-    
-    return hints
+
 
 def render_marked_highlighted_block(marked_text):
     safe = html.escape(marked_text)
@@ -480,7 +468,28 @@ def scan_tokens_with_hf(student_text):
 
     raw = ollama_chat(
         [
-            {"role": "user", "content": prompt}
+            {
+                "role": "system",
+                "content": (
+                    "Return exactly 2 lines only.\n"
+                    "MARKED: ...\n"
+                    "CORRECTED: ...\n"
+                    "No analysis.\n"
+                    "No explanation.\n"
+                    "No reasoning.\n"
+                    "No markdown."
+                    "Tag EVERY mistake in MARKED.\n"
+                    "Use [[S]]...[[/S]] for spelling only.\n"
+                    "Use [[G]]...[[/G]] for grammar only.\n"
+                    "Do not miss any error.\n"
+                    "Do not explain.\n"
+                    "Do not add markdown."
+                )
+            },
+            {
+                "role": "user",
+                "content": prompt
+            }
         ],
         temperature=0.0,
         max_tokens=180
@@ -492,30 +501,23 @@ def scan_tokens_with_hf(student_text):
         if raw.strip().startswith("⚠️ Error"):
             st.session_state["debug_parsed_mistakes"] = {}
             st.session_state["debug_json_error"] = raw
-            return {"marked_text": student_text, "corrected_text": student_text, "hints": []}
+            return {
+                "marked_text": student_text,
+                "corrected_text": student_text
+            }
 
         parsed = parse_marked_response(raw, student_text)
 
-        # Extract only the mistakes for hints
-        mistakes = []  # Add logic to extract hints (spelling/grammar mistakes)
-        if "marked_text" in parsed:
-            mistakes = extract_hints(parsed["marked_text"])
-
         st.session_state["debug_parsed_mistakes"] = parsed
         st.session_state["debug_json_error"] = "none"
-        return {
-            "marked_text": parsed["marked_text"],
-            "corrected_text": parsed["corrected_text"],
-            "hints": mistakes
-        }
+        return parsed
 
     except Exception as e:
         st.session_state["debug_parsed_mistakes"] = {}
         st.session_state["debug_json_error"] = str(e)
         return {
             "marked_text": student_text,
-            "corrected_text": student_text,
-            "hints": []
+            "corrected_text": student_text
         }
 
 # ---------------- Auth Logic ----------------
@@ -1076,18 +1078,7 @@ elif st.session_state.step == "COLLECT_PART":
                 
 
                 st.write("✍️ Refining your paragraph...")
-                # Check if mistakes are present
-                if analysis["hints"]:
-                    # Show hints to student
-                    hints = analysis["hints"]
-                    for hint in hints:
-                        st.warning(f"Hint: {hint}")
-        
-                    st.session_state.is_processing = False
-                    st.rerun()  # Ask student to revise and resubmit
-                else:
-                    # All mistakes fixed, proceed with normal process
-                    st.success("🎉 Well done! No mistakes left!")
+
                 # DB save
                 if st.session_state.class_id:
                     try:
@@ -1294,86 +1285,3 @@ elif st.session_state.step == "DONE":
                 pass
             st.session_state.clear()
             st.rerun()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
