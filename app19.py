@@ -468,28 +468,7 @@ def scan_tokens_with_hf(student_text):
 
     raw = ollama_chat(
         [
-            {
-                "role": "system",
-                "content": (
-                    "Return exactly 2 lines only.\n"
-                    "MARKED: ...\n"
-                    "CORRECTED: ...\n"
-                    "No analysis.\n"
-                    "No explanation.\n"
-                    "No reasoning.\n"
-                    "No markdown."
-                    "Tag EVERY mistake in MARKED.\n"
-                    "Use [[S]]...[[/S]] for spelling only.\n"
-                    "Use [[G]]...[[/G]] for grammar only.\n"
-                    "Do not miss any error.\n"
-                    "Do not explain.\n"
-                    "Do not add markdown."
-                )
-            },
-            {
-                "role": "user",
-                "content": prompt
-            }
+            {"role": "user", "content": prompt}
         ],
         temperature=0.0,
         max_tokens=180
@@ -501,23 +480,30 @@ def scan_tokens_with_hf(student_text):
         if raw.strip().startswith("⚠️ Error"):
             st.session_state["debug_parsed_mistakes"] = {}
             st.session_state["debug_json_error"] = raw
-            return {
-                "marked_text": student_text,
-                "corrected_text": student_text
-            }
+            return {"marked_text": student_text, "corrected_text": student_text, "hints": []}
 
         parsed = parse_marked_response(raw, student_text)
 
+        # Extract only the mistakes for hints
+        mistakes = []  # Add logic to extract hints (spelling/grammar mistakes)
+        if "marked_text" in parsed:
+            mistakes = extract_hints(parsed["marked_text"])
+
         st.session_state["debug_parsed_mistakes"] = parsed
         st.session_state["debug_json_error"] = "none"
-        return parsed
+        return {
+            "marked_text": parsed["marked_text"],
+            "corrected_text": parsed["corrected_text"],
+            "hints": mistakes
+        }
 
     except Exception as e:
         st.session_state["debug_parsed_mistakes"] = {}
         st.session_state["debug_json_error"] = str(e)
         return {
             "marked_text": student_text,
-            "corrected_text": student_text
+            "corrected_text": student_text,
+            "hints": []
         }
 
 # ---------------- Auth Logic ----------------
