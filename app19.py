@@ -430,7 +430,9 @@ def parse_marked_response(raw, student_text):
             marked_text = line.split(":", 1)[1].strip()
         elif upper.startswith("CORRECTED:"):
             corrected_text = line.split(":", 1)[1].strip()
-
+    has_spelling = ("[[S]]" in marked_text) or ("[[S]" in marked_text)
+    has_grammar = ("[[G]]" in marked_text) or ("[[G]" in marked_text)
+    has_errors = has_spelling or has_grammar
     return {
         "marked_text": marked_text,
         "corrected_text": corrected_text
