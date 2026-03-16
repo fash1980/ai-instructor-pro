@@ -1146,21 +1146,62 @@ elif st.session_state.step == "COLLECT_PART":
                 status.update(label="Feedback Ready!", state="complete", expanded=False)
 
             # Chat updates
+            # Track attempts
+            st.session_state.attempt_counts[current_part] = st.session_state.attempt_counts.get(current_part, 0) + 1
+            
+            # Always keep the student's submitted attempt in chat
             st.session_state.chat.append({"role": "user", "content": student_text})
+            
+            # Always show highlighted mistakes
             st.session_state.chat.append(
                 {
                     "role": "ai_html",
                     "content": render_marked_highlighted_block(marked_text)
                 }
             )
-            st.session_state.corrected_parts[current_part] = corrected
-            st.session_state.chat.append({"role": "ai", "content": f"**Refined Version:**\n\n{corrected}"})
-
-            # Advance part
-            st.session_state.part_i += 1
-            st.session_state.part_start_time = None
-            if st.session_state.part_i >= len(PARTS):
-                st.session_state.step = "DONE"
+            
+            if analysis.get("has_errors", False):
+                # Build retry hint from mistakes only
+                retry_hint = build_retry_hint_from_marked(marked_text, current_part)
+                st.session_state.latest_feedback_hint[current_part] = retry_hint
+                st.session_state.section_passed[current_part] = False
+                st.session_state.needs_retry = True
+            
+                # Teacher asks to rewrite same section again
+                st.session_state.chat.append(
+                    {
+                        "role": "ai",
+                        "content": (
+                            f"Please rewrite your **{current_part}** again. "
+                            f"Correct the highlighted spelling and grammar mistakes. "
+                            f"Use the hint box below the timer."
+                        )
+                    }
+                )
+            
+                # IMPORTANT: do not move to next section
+                st.session_state.part_start_time = None
+                st.session_state.timer_started = False
+            
+            else:
+                # Section passed
+                st.session_state.latest_feedback_hint[current_part] = ""
+                st.session_state.section_passed[current_part] = True
+                st.session_state.needs_retry = False
+            
+                # Now only show refined version
+                st.session_state.corrected_parts[current_part] = corrected
+                st.session_state.chat.append(
+                    {"role": "ai", "content": f"**Refined Version:**\n\n{corrected}"}
+                )
+            
+                # Advance section only now
+                st.session_state.part_i += 1
+                st.session_state.part_start_time = None
+                st.session_state.timer_started = False
+            
+                if st.session_state.part_i >= len(PARTS):
+                    st.session_state.step = "DONE"
 
             # Clear locks BEFORE rerun
             st.session_state.pending_text = None
