@@ -445,7 +445,7 @@ def parse_marked_response(raw, student_text):
     has_errors = has_spelling or has_grammar
     return {
         "marked_text": marked_text,
-        "corrected_text": corrected_text
+        "corrected_text": corrected_text,
         "has_errors": has_errors,
         "has_spelling": has_spelling,
         "has_grammar": has_grammar,
