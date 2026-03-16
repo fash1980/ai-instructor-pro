@@ -1076,7 +1076,18 @@ elif st.session_state.step == "COLLECT_PART":
                 
 
                 st.write("✍️ Refining your paragraph...")
-
+                # Check if mistakes are present
+                if analysis["hints"]:
+                    # Show hints to student
+                    hints = analysis["hints"]
+                    for hint in hints:
+                        st.warning(f"Hint: {hint}")
+        
+                    st.session_state.is_processing = False
+                    st.rerun()  # Ask student to revise and resubmit
+                else:
+                    # All mistakes fixed, proceed with normal process
+                    st.success("🎉 Well done! No mistakes left!")
                 # DB save
                 if st.session_state.class_id:
                     try:
