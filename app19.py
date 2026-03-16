@@ -463,7 +463,47 @@ def render_marked_highlighted_block(marked_text):
   </div>
 </div>
 """
+def build_retry_hint_from_marked(marked_text, current_part):
+    spelling_items = re.findall(r"\[\[S\]\](.*?)\[\[/S\]\]|\[\[S\](.*?)\[\[/S\]\]", marked_text)
+    grammar_items = re.findall(r"\[\[G\]\](.*?)\[\[/G\]\]|\[\[G\](.*?)\[\[/G\]\]", marked_text)
 
+    spelling_words = []
+    for a, b in spelling_items:
+        val = a or b
+        if val:
+            spelling_words.append(val.strip())
+
+    grammar_phrases = []
+    for a, b in grammar_items:
+        val = a or b
+        if val:
+            grammar_phrases.append(val.strip())
+
+    hints = []
+
+    if spelling_words:
+        uniq_spell = []
+        for w in spelling_words:
+            if w not in uniq_spell:
+                uniq_spell.append(w)
+        hints.append(
+            "Check the spelling of: " + ", ".join(uniq_spell[:5]) + "."
+        )
+
+    if grammar_phrases:
+        uniq_gram = []
+        for g in grammar_phrases:
+            if g not in uniq_gram:
+                uniq_gram.append(g)
+        hints.append(
+            "Look again at these grammar parts: " + "; ".join(uniq_gram[:3]) + "."
+        )
+
+    if not hints:
+        hints.append(f"Your {current_part} looks correct. Read it once more carefully.")
+
+    hints.append(f"Now rewrite your {current_part} in your own words and correct these mistakes.")
+    return " ".join(hints)
 
 def scan_tokens_with_hf(student_text):
     prompt = build_markup_prompt(student_text)
