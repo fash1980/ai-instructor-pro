@@ -558,7 +558,7 @@ def scan_tokens_with_hf(student_text):
             st.session_state["debug_json_error"] = raw
             return {
                 "marked_text": student_text,
-                "corrected_text": student_text
+                "corrected_text": student_text,
                 "has_errors": False,
                 "has_spelling": False,
                 "has_grammar": False,
@@ -575,7 +575,7 @@ def scan_tokens_with_hf(student_text):
         st.session_state["debug_json_error"] = str(e)
         return {
             "marked_text": student_text,
-            "corrected_text": student_text
+            "corrected_text": student_text,
             "has_errors": False,
             "has_spelling": False,
             "has_grammar": False,
