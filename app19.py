@@ -315,6 +315,7 @@ def floating_timer(time_text, current_part, timer_started, retry_hint=""):
                 {"Timer is running." if timer_started else "Timer starts when typing."}
             </div>
         </div>
+        {extra_hint_html}
         """,
         unsafe_allow_html=True,
     )
@@ -445,6 +446,9 @@ def parse_marked_response(raw, student_text):
     return {
         "marked_text": marked_text,
         "corrected_text": corrected_text
+        "has_errors": has_errors,
+        "has_spelling": has_spelling,
+        "has_grammar": has_grammar,
     }
 
 
@@ -555,6 +559,9 @@ def scan_tokens_with_hf(student_text):
             return {
                 "marked_text": student_text,
                 "corrected_text": student_text
+                "has_errors": False,
+                "has_spelling": False,
+                "has_grammar": False,
             }
 
         parsed = parse_marked_response(raw, student_text)
@@ -569,6 +576,9 @@ def scan_tokens_with_hf(student_text):
         return {
             "marked_text": student_text,
             "corrected_text": student_text
+            "has_errors": False,
+            "has_spelling": False,
+            "has_grammar": False,
         }
 
 # ---------------- Auth Logic ----------------
