@@ -288,10 +288,19 @@ def format_mmss(seconds: int) -> str:
 
 
 # ---------------- Floating Timer Overlay ----------------
-def floating_timer(time_text, current_part, timer_started):
+def floating_timer(time_text, current_part, timer_started, retry_hint=""):
     color = "#ef4444" if time_text == "0m 0s" else "#1e293b"
     timer_box = st.container()
-
+    extra_hint_html = ""
+    if retry_hint:
+        extra_hint_html = f"""
+        <div class="hint-card" style="margin-top:15px; background:#fff7ed; border:1px solid #fed7aa;">
+            <div style="font-weight:700;">Correction Hint</div>
+            <div style="margin-top:6px; color:#7c2d12;">
+                {html.escape(retry_hint)}
+            </div>
+        </div>
+        """
     timer_box.markdown(
         f"""
         <div class="timer-card">
@@ -949,7 +958,13 @@ elif st.session_state.step == "COLLECT_PART":
     remaining = max(0, max_sec - int(elapsed))
 
     # ✅ SHOW FLOATING TIMER (streamlit-float)
-    floating_timer(format_mmss(remaining), current_part, st.session_state.timer_started)
+    retry_hint = st.session_state.latest_feedback_hint.get(current_part, "")
+    floating_timer(
+        format_mmss(remaining),
+        current_part,
+        st.session_state.timer_started,
+        retry_hint=retry_hint
+    )
 
     # Layout (right column not needed anymore, but kept for spacing if you want)
     main_col, side_col = st.columns([3.2, 1.1], gap="large")
