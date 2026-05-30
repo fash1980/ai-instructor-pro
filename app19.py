@@ -392,7 +392,29 @@ def floating_timer(time_text, current_part, timer_started, retry_hint=""):
 
     #except Exception as e:
         #return f"⚠️ Error: {str(e)}"
+def ollama_chat(messages, temperature=0.7, max_tokens=300):
 
+    genai.configure(
+        api_key=st.secrets["GEMINI_API_KEY"]
+    )
+
+    model = genai.GenerativeModel(
+        "gemini-2.5-flash"
+    )
+
+    prompt = "\n".join(
+        [m["content"] for m in messages]
+    )
+
+    response = model.generate_content(
+        prompt,
+        generation_config={
+            "temperature": temperature,
+            "max_output_tokens": max_tokens,
+        }
+    )
+
+    return response.text
 def translate_malay_to_english(malay_text):
     if not malay_text.strip():
         return ""
