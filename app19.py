@@ -1114,12 +1114,29 @@ elif st.session_state.step == "COLLECT_PART":
                     setTimeout(attachHandlers, 300);
                 </script>
             """, height=95)
-            student_text = st.text_area(
-                f"Target: {min_w}-{max_w} words",
-                height=220,
-                key=f"input_{st.session_state.part_i}",
-                placeholder="Start typing here...",
-            )
+            write_col, trans_col = st.columns([1.3, 1])
+            with write_col:
+                student_text = st.text_area(
+                    f"Type in Bahasa Melayu | Target: {min_w}-{max_w} words",
+                    height=220,
+                    key=f"input_{st.session_state.part_i}",
+                    placeholder="Tulis perenggan anda dalam Bahasa Melayu...",
+                )
+
+            with trans_col:
+                st.markdown("### English Translation")
+
+            if student_text.strip():
+                english_translation = translate_malay_to_english(student_text)
+                st.text_area(
+                    "Translated English",
+                    value=english_translation,
+                    height=220,
+                    disabled=True,
+                    key=f"translated_{st.session_state.part_i}",
+                )
+            else:
+                st.info("English translation will appear here after the student types.")
 
             #st.caption(f"Word count: {word_count(student_text)} / min {min_w}")
 
