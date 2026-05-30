@@ -8,6 +8,8 @@ from supabase import create_client
 from deep_translator import GoogleTranslator
 from datetime import datetime, timezone
 import streamlit.components.v1 as components
+from groq import Groq
+import streamlit as st
 from types import SimpleNamespace
 import os, base64, hashlib, secrets, time
 import streamlit as st
