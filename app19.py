@@ -391,7 +391,23 @@ def ollama_chat(messages, temperature=0.7, max_tokens=300):
     except Exception as e:
         return f"⚠️ Error: {str(e)}"
 
+def translate_malay_to_english(malay_text):
+    if not malay_text.strip():
+        return ""
 
+    prompt = f"""
+Translate the following Bahasa Melayu text into clear, simple English.
+Do not add explanation. Only return the English translation.
+
+Bahasa Melayu:
+{malay_text}
+"""
+
+    return ollama_chat(
+        [{"role": "user", "content": prompt}],
+        temperature=0.2,
+        max_tokens=250
+    )
 def build_markup_prompt(student_text):
     return f"""
 Return exactly 2 lines only.
