@@ -5,6 +5,7 @@ import requests
 import streamlit as st
 import pandas as pd
 from supabase import create_client
+from deep_translator import GoogleTranslator
 from datetime import datetime, timezone
 import streamlit.components.v1 as components
 from types import SimpleNamespace
