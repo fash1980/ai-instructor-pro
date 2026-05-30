@@ -1153,6 +1153,11 @@ elif st.session_state.step == "COLLECT_PART":
             if word_count(student_text) < min_w:
                 st.error(f"Write more! Min {min_w} words.")
             else:
+                text_for_checking = (
+                    english_translation
+                    if student_text.strip()
+                    else student_text
+                )
                 # Stop timer + store submission safely
                 st.session_state.timer_started = False
                 st.session_state.pending_text = text_for_checking
