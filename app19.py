@@ -15,6 +15,8 @@ import extra_streamlit_components as stx
 from streamlit_float import float_init
 from urllib.parse import quote
 import json
+import google.generativeai as genai
+
 DEBUG_AUTH = True
 def _b64url(b: bytes) -> str:
     return base64.urlsafe_b64encode(b).decode().rstrip("=")
