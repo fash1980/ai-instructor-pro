@@ -7,3 +7,4 @@ google-generativeai
 streamlit-float
 streamlit-autorefresh
 deep-translator
+groq
