@@ -472,7 +472,7 @@ Rules:
 - Revise the whole student written paragraph 3 times so no english grammar mistake is left unchecked.
 - In MARKED, keep the student's original paragraph exactly the same, only add tags
 - Every wrong word or wrong phrase must be tagged
-- Do not leave any mistake untagged
+- Do not invent errors
 - Use [[S]]...[[/S]] for spelling mistakes
 - Use [[G]]...[[/G]] for grammar mistakes
 - Use [[S]]wrong_word[[/S]] only for spelling mistakes
