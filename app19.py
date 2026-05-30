@@ -400,7 +400,7 @@ def ollama_chat(messages, temperature=0.7, max_tokens=300):
     )
 
     model = genai.GenerativeModel(
-        "gemini-1.5-flash"
+        "gemini-2.0-flash"
     )
 
     prompt = "\n".join(
