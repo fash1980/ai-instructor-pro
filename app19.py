@@ -1221,7 +1221,7 @@ elif st.session_state.step == "COLLECT_PART":
 
             with st.status("Tutor is reviewing your work...", expanded=True) as status:
                 st.write("🔍 Scanning for mistakes...")
-                st.write("TEXT SENT TO AI:", text_for_checking)
+                st.write("TEXT SENT TO AI:", student_text)
                 analysis = scan_tokens_with_hf(student_text)
                 marked_text = analysis["marked_text"]
                 corrected = analysis["corrected_text"]
