@@ -395,33 +395,52 @@ def floating_timer(time_text, current_part, timer_started, retry_hint=""):
 
     #except Exception as e:
         #return f"⚠️ Error: {str(e)}"
+# This was LLM for Gemini
+#def ollama_chat(messages, temperature=0.7, max_tokens=300):
+   # try:
+       # genai.configure(
+           # api_key=st.secrets["GEMINI_API_KEY"]
+        #)
+
+       # model = genai.GenerativeModel(
+           # "gemini-2.0-flash-lite"
+       # )
+
+      #  prompt = "\n".join(
+          #  [m["content"] for m in messages]
+      #  )
+
+     #   response = model.generate_content(
+          #  prompt,
+           # generation_config={
+               # "temperature": temperature,
+              #  "max_output_tokens": max_tokens,
+          #  }
+      #  )
+
+       # return response.text.strip()
+
+  #  except Exception as e:
+       # return "⚠️ AI is temporarily busy. Please wait a minute and try again."
+
+
 def ollama_chat(messages, temperature=0.7, max_tokens=300):
     try:
-        genai.configure(
-            api_key=st.secrets["GEMINI_API_KEY"]
+        client = Groq(
+            api_key=st.secrets["GROQ_API_KEY"]
         )
 
-        model = genai.GenerativeModel(
-            "gemini-2.0-flash-lite"
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=messages,
+            temperature=temperature,
+            max_tokens=max_tokens
         )
 
-        prompt = "\n".join(
-            [m["content"] for m in messages]
-        )
-
-        response = model.generate_content(
-            prompt,
-            generation_config={
-                "temperature": temperature,
-                "max_output_tokens": max_tokens,
-            }
-        )
-
-        return response.text.strip()
+        return response.choices[0].message.content.strip()
 
     except Exception as e:
-        return "⚠️ AI is temporarily busy. Please wait a minute and try again."
-
+        return f"⚠️ Groq Error: {e}"
 def translate_malay_to_english(malay_text):
     if not malay_text.strip():
         return ""
