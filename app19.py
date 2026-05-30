@@ -1155,7 +1155,7 @@ elif st.session_state.step == "COLLECT_PART":
             else:
                 # Stop timer + store submission safely
                 st.session_state.timer_started = False
-                st.session_state.pending_text = student_text
+                st.session_state.pending_text = text_for_checking
                 st.session_state.is_processing = True
                 st.rerun()
 
