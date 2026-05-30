@@ -1046,11 +1046,11 @@ elif st.session_state.step == "COLLECT_PART":
                     f"Keep the guidance clear, student-friendly, and simple english "
                     f"End by saying exactly: 'Now, please write your {current_part}'"
                 )
-                    lesson = ollama_chat(
-                    [{ "role": "user", "content": teaching_prompt }],
-                    temperature=0.3,
-                    max_tokens=160
-                    )
+                lesson = ollama_chat(
+                [{ "role": "user", "content": teaching_prompt }],
+                temperature=0.3,
+                max_tokens=160
+                )
                 st.session_state.chat.append({"role": "ai", "content": lesson})
                 st.session_state[current_step_key] = True
                 st.rerun()  # show lesson before the user types
