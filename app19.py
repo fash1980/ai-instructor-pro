@@ -326,72 +326,72 @@ def floating_timer(time_text, current_part, timer_started, retry_hint=""):
 
 
 # ---------------- AI Engines ----------------
-def ollama_chat(messages, temperature=0.7, max_tokens=300):
-    try:
-        hf_token = st.secrets["HF_API_TOKEN"]
-        hf_model = st.secrets["HF_MODEL"]
+#def ollama_chat(messages, temperature=0.7, max_tokens=300):
+    #try:
+        #hf_token = st.secrets["HF_API_TOKEN"]
+        #hf_model = st.secrets["HF_MODEL"]
 
-        r = requests.post(
-            "https://router.huggingface.co/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {hf_token}",
-                "Content-Type": "application/json",
-            },
-            json={
-                "model": hf_model,
-                "messages": messages,
-                "temperature": temperature,
-                "max_tokens": max_tokens,
-            },
-            timeout=120,
-        )
+        #r = requests.post(
+            #"https://router.huggingface.co/v1/chat/completions",
+            #headers={
+                #"Authorization": f"Bearer {hf_token}",
+                #"Content-Type": "application/json",
+            #},
+            #json={
+                #"model": hf_model,
+                #"messages": messages,
+                #"temperature": temperature,
+                #"max_tokens": max_tokens,
+            #},
+            #timeout=120,
+        #)
 
-        data = r.json()
+        #data = r.json()
 
         # save full response for debug
-        st.session_state["debug_hf_full_response"] = data
+        #st.session_state["debug_hf_full_response"] = data
 
-        if "error" in data:
-            return f"⚠️ API Error: {data['error']}"
+        #if "error" in data:
+            #return f"⚠️ API Error: {data['error']}"
 
-        if "choices" not in data or not data["choices"]:
-            return f"⚠️ Error: Unexpected response: {data}"
+        #if "choices" not in data or not data["choices"]:
+            #return f"⚠️ Error: Unexpected response: {data}"
 
-        choice = data["choices"][0]
-        msg = choice.get("message", {}) or {}
+        #choice = data["choices"][0]
+        #msg = choice.get("message", {}) or {}
 
-        finish_reason = choice.get("finish_reason", "unknown")
-        st.session_state["debug_finish_reason"] = finish_reason
-        st.session_state["debug_message"] = msg
+        #finish_reason = choice.get("finish_reason", "unknown")
+        #st.session_state["debug_finish_reason"] = finish_reason
+        #st.session_state["debug_message"] = msg
 
-        content = msg.get("content", None)
-        reasoning = msg.get("reasoning", None)
+        #content = msg.get("content", None)
+        #reasoning = msg.get("reasoning", None)
 
         # ---- CASE 1 : content is normal string
-        if isinstance(content, str) and content.strip():
-            return content.strip()
+        #if isinstance(content, str) and content.strip():
+            #return content.strip()
 
         # ---- CASE 2 : content is list of blocks
-        if isinstance(content, list):
-            texts = []
-            for block in content:
-                if isinstance(block, dict):
-                    txt = block.get("text")
-                    if isinstance(txt, str) and txt.strip():
-                        texts.append(txt.strip())
+        #if isinstance(content, list):
+            #texts = []
+            #for block in content:
+                #if isinstance(block, dict):
+                    #txt = block.get("text")
+                    #if isinstance(txt, str) and txt.strip():
+                        #texts.append(txt.strip())
 
-            if texts:
-                return "\n".join(texts).strip()
+            #if texts:
+                #return "\n".join(texts).strip()
 
         # ---- CASE 3 : some models return reasoning instead of content
-        if isinstance(reasoning, str) and reasoning.strip():
-            return reasoning.strip()
+        #if isinstance(reasoning, str) and reasoning.strip():
+            #return reasoning.strip()
 
         # ---- CASE 4 : nothing readable found
-        return f"⚠️ Error: No readable content | finish_reason={finish_reason}"
+        #return f"⚠️ Error: No readable content | finish_reason={finish_reason}"
 
-    except Exception as e:
-        return f"⚠️ Error: {str(e)}"
+    #except Exception as e:
+        #return f"⚠️ Error: {str(e)}"
 
 def translate_malay_to_english(malay_text):
     if not malay_text.strip():
