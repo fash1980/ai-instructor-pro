@@ -589,18 +589,20 @@ def scan_tokens_with_hf(student_text):
                 "role": "system",
                 "content": (
                     "Return exactly 2 lines only.\n"
-                    "MARKED: ...\n"
-                    "CORRECTED: ...\n"
-                    "No analysis.\n"
+                    "Line 1 must start with: MARKED:\n"
+                    "Line 2 must start with: CORRECTED:\n"
+                    "Check only genuine spelling and grammar mistakes.\n"
+                    "If the paragraph is already correct, do not tag anything.\n"
+                    "Do not invent mistakes.\n"
+                    "Do not mark acceptable phrases as errors.\n"
+                    "Use [[S]]...[[/S]] only for clear spelling mistakes.\n"
+                    "Use [[G]]...[[/G]] only for clear grammar mistakes.\n"
+                    "In MARKED, keep the original paragraph exactly the same except tags.\n"
+                    "In CORRECTED, give the corrected paragraph.\n"
                     "No explanation.\n"
                     "No reasoning.\n"
+                    "No bullets.\n"
                     "No markdown."
-                    "Tag EVERY mistake in MARKED.\n"
-                    "Use [[S]]...[[/S]] for spelling only.\n"
-                    "Use [[G]]...[[/G]] for grammar only.\n"
-                    "Do not miss any error.\n"
-                    "Do not explain.\n"
-                    "Do not add markdown."
                 )
             },
             {
