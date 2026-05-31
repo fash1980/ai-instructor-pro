@@ -1227,16 +1227,15 @@ elif st.session_state.step == "COLLECT_PART":
             if word_count(student_text) < min_w:
                 st.error(f"Write more! Min {min_w} words.")
             else:
-                if active_lang == "Bahasa Melayu":
-                    text_for_checking = translate_malay_to_english(student_text)
-                    english_translation = translate_malay_to_english(student_text)
-                else:
-                    text_for_checking = student_text
-                    malay_translation = translate_english_to_malay(student_text)
+                # Send the ORIGINAL typed text to AI checker
+                text_for_checking = student_text
+        
+                # Store active language safely before rerun
+                st.session_state.pending_lang = active_lang
+        
                 # Stop timer + store submission safely
                 st.session_state.timer_started = False
                 st.session_state.pending_text = text_for_checking
-                st.session_state.pending_lang = active_lang
                 st.session_state.is_processing = True
                 st.rerun()
 
