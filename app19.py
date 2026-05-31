@@ -461,7 +461,7 @@ def translate_malay_to_english(malay_text):
     except Exception:
         return malay_text
     
-def build_markup_prompt(student_text):
+def build_markup_prompt(student_text, active_lang):
     return f"""
 Return exactly 2 lines only.
 
@@ -472,6 +472,8 @@ Line 2 must start with:
 CORRECTED:
 
 Rules:
+- The paragraph language is {active_lang}.
+- Check spelling and grammar in {active_lang}.
 - Check each and every word for spelling and use [[S]] tag to mark start of wrong spelling word and [[/S]] tag to mark the end of wrong spelling word.
 - Check Grammar syntax very thoroughly and use and use [[G]] tag to mark start of wrong spelling word and [[/G]] tag to mark the end of wrong spelling word.
 - Once written the refines version compare it with student written version and check if any spelling or grammar mistake remain untagged then tag them.
@@ -587,8 +589,8 @@ def build_retry_hint_from_marked(marked_text, current_part):
     hints.append(f"Now rewrite your {current_part} in your own words and correct these mistakes.")
     return " ".join(hints)
 
-def scan_tokens_with_hf(student_text):
-    prompt = build_markup_prompt(student_text)
+def scan_tokens_with_hf(student_text, active_lang="English"):
+    prompt = build_markup_prompt(student_text, active_lang)
 
     raw = ollama_chat(
         [
@@ -1230,6 +1232,7 @@ elif st.session_state.step == "COLLECT_PART":
                     english_translation = translate_malay_to_english(student_text)
                 else:
                     text_for_checking = student_text
+                     malay_translation = translate_english_to_malay(student_text)
                 # Stop timer + store submission safely
                 st.session_state.timer_started = False
                 st.session_state.pending_text = text_for_checking
@@ -1244,7 +1247,7 @@ elif st.session_state.step == "COLLECT_PART":
             with st.status("Tutor is reviewing your work...", expanded=True) as status:
                 st.write("🔍 Scanning for mistakes...")
                 st.write("TEXT SENT TO AI:", student_text)
-                analysis = scan_tokens_with_hf(student_text)
+                analysis = scan_tokens_with_hf(student_text, active_lang)
                 marked_text = analysis["marked_text"]
                 corrected = analysis["corrected_text"]
 
@@ -1331,6 +1334,19 @@ elif st.session_state.step == "COLLECT_PART":
                 )
             
                 # Advance section only now
+                old_i = st.session_state.part_i
+
+                st.session_state.corrected_parts[current_part] = corrected
+                st.session_state.chat.append(
+                    {"role": "ai", "content": f"**Refined Version:**\n\n{corrected}"}
+                )
+                
+                st.session_state.pop(f"malay_input_{old_i}", None)
+                st.session_state.pop(f"english_input_{old_i}", None)
+                st.session_state.pop(f"input_{old_i}", None)
+                st.session_state.pop(f"translated_{old_i}", None)
+                st.session_state.pop(f"active_lang_{old_i}", None)
+                
                 st.session_state.part_i += 1
                 st.session_state.part_start_time = None
                 st.session_state.timer_started = False
