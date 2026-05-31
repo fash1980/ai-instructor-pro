@@ -441,6 +441,13 @@ def ollama_chat(messages, temperature=0.7, max_tokens=300):
 
     except Exception as e:
         return f"⚠️ Groq Error: {e}"
+def translate_english_to_malay(english_text):
+    if not english_text.strip():
+        return ""
+    try:
+        return GoogleTranslator(source="en", target="ms").translate(english_text)
+    except Exception:
+        return english_text
 def translate_malay_to_english(malay_text):
     if not malay_text.strip():
         return ""
@@ -1166,29 +1173,42 @@ elif st.session_state.step == "COLLECT_PART":
                     setTimeout(attachHandlers, 300);
                 </script>
             """, height=95)
-            write_col, trans_col = st.columns([1.3, 1])
-            with write_col:
-                student_text = st.text_area(
-                    f"Type in Bahasa Melayu | Target: {min_w}-{max_w} words",
+            lang_col1, lang_col2 = st.columns(2)
+
+            with lang_col1:
+                malay_text = st.text_area(
+                    f"Bahasa Melayu | Target: {min_w}-{max_w} words",
                     height=220,
-                    key=f"input_{st.session_state.part_i}",
+                    key=f"malay_input_{st.session_state.part_i}",
                     placeholder="Tulis perenggan anda dalam Bahasa Melayu...",
                 )
-
-            with trans_col:
-                st.markdown("### English Translation")
-
-            if student_text.strip():
-                english_translation = translate_malay_to_english(student_text)
-                st.text_area(
-                    "Translated English",
-                    value=english_translation,
+            
+            with lang_col2:
+                english_text = st.text_area(
+                    "English",
                     height=220,
-                    disabled=True,
-                    key=f"translated_{st.session_state.part_i}",
+                    key=f"english_input_{st.session_state.part_i}",
+                    placeholder="Type your paragraph in English...",
                 )
+            
+            # Decide active box
+            active_lang = st.radio(
+                "Active typing language",
+                ["Bahasa Melayu", "English"],
+                horizontal=True,
+                key=f"active_lang_{st.session_state.part_i}"
+            )
+            
+            if active_lang == "Bahasa Melayu":
+                student_text = malay_text
+                english_translation = translate_malay_to_english(malay_text) if malay_text.strip() else ""
+                st.caption("English translation:")
+                st.info(english_translation if english_translation else "English translation will appear here.")
             else:
-                st.info("English translation will appear here after the student types.")
+                student_text = english_text
+                malay_translation = translate_english_to_malay(english_text) if english_text.strip() else ""
+                st.caption("Bahasa Melayu translation:")
+                st.info(malay_translation if malay_translation else "Bahasa Melayu translation will appear here.")
 
             #st.caption(f"Word count: {word_count(student_text)} / min {min_w}")
 
@@ -1205,11 +1225,10 @@ elif st.session_state.step == "COLLECT_PART":
             if word_count(student_text) < min_w:
                 st.error(f"Write more! Min {min_w} words.")
             else:
-                text_for_checking = (
-                    english_translation
-                    if student_text.strip()
-                    else student_text
-                )
+                if active_lang == "Bahasa Melayu":
+                    text_for_checking = translate_malay_to_english(student_text)
+                else:
+                    text_for_checking = student_text
                 # Stop timer + store submission safely
                 st.session_state.timer_started = False
                 st.session_state.pending_text = text_for_checking
