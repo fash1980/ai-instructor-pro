@@ -1227,6 +1227,7 @@ elif st.session_state.step == "COLLECT_PART":
             else:
                 if active_lang == "Bahasa Melayu":
                     text_for_checking = translate_malay_to_english(student_text)
+                    english_translation = translate_malay_to_english(student_text)
                 else:
                     text_for_checking = student_text
                 # Stop timer + store submission safely
