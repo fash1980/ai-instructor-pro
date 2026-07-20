@@ -886,7 +886,136 @@ def auth_gate():
     user = st.session_state.sb_session.user
     return user.id, user.email, st.session_state.sb_session.access_token
 
+# ---------------- Admin Dashboard ----------------
 
+def admin_dashboard(user_email, profile):
+    admin_name = profile.get("full_name") or user_email
+
+    st.markdown(
+        """
+        <style>
+        .admin-header {
+            background: linear-gradient(135deg, #312e81, #6366f1, #9333ea);
+            color: white;
+            border-radius: 24px;
+            padding: 36px;
+            margin-bottom: 30px;
+            text-align: center;
+            box-shadow: 0 20px 50px rgba(79, 70, 229, 0.20);
+        }
+
+        .admin-header h1 {
+            margin: 0;
+            font-size: 38px;
+            font-weight: 800;
+        }
+
+        .admin-header p {
+            margin-top: 10px;
+            opacity: 0.9;
+            font-size: 16px;
+        }
+
+        .admin-card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 24px;
+            padding: 35px 25px;
+            text-align: center;
+            min-height: 250px;
+            box-shadow: 0 14px 35px rgba(15, 23, 42, 0.08);
+        }
+
+        .admin-card-icon {
+            font-size: 54px;
+            margin-bottom: 16px;
+        }
+
+        .admin-card-title {
+            font-size: 24px;
+            font-weight: 800;
+            color: #0f172a;
+            margin-bottom: 10px;
+        }
+
+        .admin-card-text {
+            color: #64748b;
+            font-size: 15px;
+            margin-bottom: 22px;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
+    st.markdown(
+        f"""
+        <div class="admin-header">
+            <h1>Admin Control Panel</h1>
+            <p>
+                Welcome, {html.escape(admin_name)}.
+                Choose the interface you want to open.
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    col1, col2 = st.columns(2, gap="large")
+
+    with col1:
+        st.markdown(
+            """
+            <div class="admin-card">
+                <div class="admin-card-icon">👩‍🏫</div>
+                <div class="admin-card-title">Teacher Dashboard</div>
+                <div class="admin-card-text">
+                    View classes, students, assignments and progress reports.
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+        if st.button(
+            "Enter Teacher Dashboard",
+            use_container_width=True,
+            key="admin_teacher_button"
+        ):
+            st.session_state.admin_view_mode = "teacher"
+            st.rerun()
+
+    with col2:
+        st.markdown(
+            """
+            <div class="admin-card">
+                <div class="admin-card-icon">🎓</div>
+                <div class="admin-card-title">Student Dashboard</div>
+                <div class="admin-card-text">
+                    Open the essay-writing interface as a student.
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+        if st.button(
+            "Enter Student Dashboard",
+            use_container_width=True,
+            key="admin_student_button"
+        ):
+            st.session_state.admin_view_mode = "student"
+            st.rerun()
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    if st.button(
+        "Logout",
+        use_container_width=True,
+        key="admin_logout_button"
+    ):
+        st.session_state.clear()
+        st.rerun()
 # ---------------- Main App ----------------
 user_id, user_email, access_token = auth_gate()
 db = user_client(access_token)
