@@ -1017,21 +1017,98 @@ def admin_dashboard(user_email, profile):
         st.session_state.clear()
         st.rerun()
 # ---------------- Main App ----------------
+
 user_id, user_email, access_token = auth_gate()
 db = user_client(access_token)
 
-# Fetch user profile data to get the saved level
-if "level" not in st.session_state:
-    try:
-        profile_res = (
-            db.table("profiles").select("education_level").eq("id", user_id).single().execute()
+# Fetch complete profile including role
+try:
+    profile_res = (
+        db.table("profiles")
+        .select(
+            "id, full_name, email, role, "
+            "education_level, age"
         )
-        if profile_res.data:
-            st.session_state.level = profile_res.data["education_level"]
-        else:
-            st.session_state.level = "Secondary"  # Default if profile not found
-    except Exception:
-        st.session_state.level = "Secondary"
+        .eq("id", user_id)
+        .single()
+        .execute()
+    )
+
+    profile = profile_res.data or {}
+
+except Exception as e:
+    st.error(f"Could not load profile: {e}")
+    st.stop()
+
+
+# Read role from Supabase
+user_role = (
+    profile.get("role")
+    or "student"
+).strip().lower()
+
+
+# Save education level for student interface
+if "level" not in st.session_state:
+    st.session_state.level = (
+        profile.get("education_level")
+        or "Secondary"
+    )
+
+
+# ---------------- Admin Routing ----------------
+
+if user_role == "admin":
+
+    if "admin_view_mode" not in st.session_state:
+        st.session_state.admin_view_mode = "admin"
+
+    # Show admin selection screen
+    if st.session_state.admin_view_mode == "admin":
+        admin_dashboard(
+            user_email=user_email,
+            profile=profile
+        )
+        st.stop()
+
+    # Teacher interface will be added next
+    elif st.session_state.admin_view_mode == "teacher":
+        st.title("Teacher Dashboard")
+
+        st.info(
+            "Teacher dashboard layout will be connected in the next step."
+        )
+
+        if st.button(
+            "Back to Admin Dashboard",
+            key="teacher_back_admin"
+        ):
+            st.session_state.admin_view_mode = "admin"
+            st.rerun()
+
+        st.stop()
+
+    # Student mode continues into existing student app below
+    elif st.session_state.admin_view_mode == "student":
+        pass
+
+
+# Teacher routing temporarily
+elif user_role == "teacher":
+    st.title("Teacher Dashboard")
+
+    st.info(
+        "Teacher dashboard will be designed in the next step."
+    )
+
+    if st.button("Logout", key="teacher_temp_logout"):
+        st.session_state.clear()
+        st.rerun()
+
+    st.stop()
+
+
+# Student role continues into existing student interface below
 
 
 # Sidebar
