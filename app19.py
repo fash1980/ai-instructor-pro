@@ -1349,29 +1349,16 @@ def render_metric_card(
     description=""
 ):
     st.markdown(
-        f"""
-        <div class="teacher-metric-card">
-            <div class="teacher-metric-top">
-                <div class="teacher-metric-icon">
-                    <span class="material-symbols-rounded">
-                        {icon}
-                    </span>
-                </div>
-            </div>
-
-            <div class="teacher-metric-value">
-                {html.escape(str(value))}
-            </div>
-
-            <div class="teacher-metric-title">
-                {html.escape(str(title))}
-            </div>
-
-            <div class="teacher-metric-description">
-                {html.escape(str(description))}
-            </div>
-        </div>
-        """,
+        f"""<div class="teacher-metric-card">
+<div class="teacher-metric-top">
+<div class="teacher-metric-icon">
+<span class="material-symbols-rounded">{html.escape(str(icon))}</span>
+</div>
+</div>
+<div class="teacher-metric-value">{html.escape(str(value))}</div>
+<div class="teacher-metric-title">{html.escape(str(title))}</div>
+<div class="teacher-metric-description">{html.escape(str(description))}</div>
+</div>""",
         unsafe_allow_html=True
     )
 
