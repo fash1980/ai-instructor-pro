@@ -1130,7 +1130,7 @@ with st.sidebar:
     st.write(
         f":material/person: **Welcome, {user_email}**"
     )
-    st.write(f":material/person: **Welcome, {user_email}**")
+    
 
     # Use the saved level as the default index
     level_list = ["Primary", "Secondary", "Higher Secondary"]
