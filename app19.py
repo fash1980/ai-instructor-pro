@@ -2498,22 +2498,32 @@ elif st.session_state.step == "COLLECT_PART":
                     setTimeout(attachHandlers, 300);
                 </script>
             """, height=95)
+            # Student can use only these two languages
+            active_lang = st.radio(
+                "Choose your writing / speaking language",
+                ["Bahasa Melayu", "English"],
+                horizontal=True,
+                key=f"active_lang_{st.session_state.part_i}"
+            )
+            
             lang_col1, lang_col2 = st.columns(2)
-
+            
             with lang_col1:
                 malay_text = st.text_area(
                     f"Bahasa Melayu | Target: {min_w}-{max_w} words",
                     height=220,
                     key=f"malay_input_{st.session_state.part_i}",
-                    placeholder="Tulis perenggan anda dalam Bahasa Melayu...",
+                    placeholder="Taip atau gunakan mikrofon untuk Bahasa Melayu...",
+                    disabled=(active_lang != "Bahasa Melayu")
                 )
             
             with lang_col2:
                 english_text = st.text_area(
-                    "English",
+                    f"English | Target: {min_w}-{max_w} words",
                     height=220,
                     key=f"english_input_{st.session_state.part_i}",
-                    placeholder="Type your paragraph in English...",
+                    placeholder="Type or use the microphone for English...",
+                    disabled=(active_lang != "English")
                 )
             
             # Decide active box
