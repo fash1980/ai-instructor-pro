@@ -1016,6 +1016,1058 @@ def admin_dashboard(user_email, profile):
     ):
         st.session_state.clear()
         st.rerun()
+
+# =========================================================
+# TEACHER DASHBOARD DATA
+# =========================================================
+
+def load_teacher_dashboard_data(data_client):
+    """
+    Load all students and their essay progress from Supabase.
+    """
+
+    try:
+        students_result = (
+            data_client.table("profiles")
+            .select(
+                "id, full_name, email, age, "
+                "education_level, role"
+            )
+            .eq("role", "student")
+            .execute()
+        )
+
+        students = students_result.data or []
+
+    except Exception as e:
+        st.error(f"Could not load students: {e}")
+        students = []
+
+    try:
+        classes_result = (
+            data_client.table("classes")
+            .select(
+                "id, user_id, topic, level, strictness, "
+                "started_at, ended_at, badge, badge_score"
+            )
+            .order("started_at", desc=True)
+            .execute()
+        )
+
+        classes = classes_result.data or []
+
+    except Exception as e:
+        st.error(f"Could not load class records: {e}")
+        classes = []
+
+    try:
+        submissions_result = (
+            data_client.table("submissions")
+            .select(
+                "id, class_id, user_id, part, "
+                "word_count, late"
+            )
+            .execute()
+        )
+
+        submissions = submissions_result.data or []
+
+    except Exception as e:
+        st.error(f"Could not load submissions: {e}")
+        submissions = []
+
+    return students, classes, submissions
+
+
+def safe_datetime(value):
+    """
+    Convert Supabase datetime into pandas datetime safely.
+    """
+
+    if not value:
+        return pd.NaT
+
+    try:
+        return pd.to_datetime(value, utc=True)
+    except Exception:
+        return pd.NaT
+
+
+def format_dashboard_date(value):
+    """
+    Format datetime for dashboard display.
+    """
+
+    dt = safe_datetime(value)
+
+    if pd.isna(dt):
+        return "Never"
+
+    try:
+        return dt.strftime("%d %b %Y, %I:%M %p")
+    except Exception:
+        return "Never"
+
+
+def build_student_progress_dataframe(
+    students,
+    classes,
+    submissions
+):
+    """
+    Produce one summary row per student.
+    """
+
+    progress_rows = []
+
+    for student in students:
+        student_id = student.get("id")
+
+        student_classes = [
+            item
+            for item in classes
+            if item.get("user_id") == student_id
+        ]
+
+        student_submissions = [
+            item
+            for item in submissions
+            if item.get("user_id") == student_id
+        ]
+
+        total_essays = len(student_classes)
+
+        completed_classes = [
+            item
+            for item in student_classes
+            if item.get("ended_at")
+        ]
+
+        completed_essays = len(completed_classes)
+
+        scores = [
+            item.get("badge_score")
+            for item in completed_classes
+            if item.get("badge_score") is not None
+        ]
+
+        numeric_scores = []
+
+        for score in scores:
+            try:
+                numeric_scores.append(float(score))
+            except Exception:
+                pass
+
+        average_score = (
+            round(
+                sum(numeric_scores) / len(numeric_scores),
+                1
+            )
+            if numeric_scores
+            else 0
+        )
+
+        completion_rate = (
+            round(
+                completed_essays / total_essays * 100,
+                1
+            )
+            if total_essays > 0
+            else 0
+        )
+
+        total_paragraphs = len(student_submissions)
+
+        late_submissions = sum(
+            1
+            for item in student_submissions
+            if item.get("late") is True
+        )
+
+        total_words = sum(
+            int(item.get("word_count") or 0)
+            for item in student_submissions
+        )
+
+        started_dates = [
+            safe_datetime(item.get("started_at"))
+            for item in student_classes
+            if item.get("started_at")
+        ]
+
+        valid_dates = [
+            value
+            for value in started_dates
+            if not pd.isna(value)
+        ]
+
+        last_active_raw = (
+            max(valid_dates)
+            if valid_dates
+            else pd.NaT
+        )
+
+        if total_essays == 0:
+            progress_status = "Not Started"
+
+        elif completed_essays == total_essays:
+            progress_status = "Completed"
+
+        else:
+            progress_status = "In Progress"
+
+        if total_essays == 0:
+            risk_level = "No Activity"
+
+        elif average_score < 50:
+            risk_level = "High"
+
+        elif average_score < 70:
+            risk_level = "Medium"
+
+        else:
+            risk_level = "Low"
+
+        progress_rows.append(
+            {
+                "Student ID": student_id,
+                "Student": (
+                    student.get("full_name")
+                    or student.get("email")
+                    or "Unknown Student"
+                ),
+                "Email": student.get("email") or "",
+                "Level": (
+                    student.get("education_level")
+                    or "Not Set"
+                ),
+                "Essays Started": total_essays,
+                "Essays Completed": completed_essays,
+                "Completion Rate": completion_rate,
+                "Average Score": average_score,
+                "Paragraphs Submitted": total_paragraphs,
+                "Total Words": total_words,
+                "Late Submissions": late_submissions,
+                "Status": progress_status,
+                "Risk": risk_level,
+                "Last Active Raw": last_active_raw,
+                "Last Active": (
+                    last_active_raw.strftime(
+                        "%d %b %Y"
+                    )
+                    if not pd.isna(last_active_raw)
+                    else "Never"
+                )
+            }
+        )
+
+    return pd.DataFrame(progress_rows)
+
+
+def get_recent_student_activity(
+    students,
+    classes,
+    limit=10
+):
+    """
+    Build recent essay activity table.
+    """
+
+    student_lookup = {
+        student.get("id"): (
+            student.get("full_name")
+            or student.get("email")
+            or "Unknown Student"
+        )
+        for student in students
+    }
+
+    activity_rows = []
+
+    for class_item in classes:
+        student_id = class_item.get("user_id")
+
+        activity_rows.append(
+            {
+                "Student": student_lookup.get(
+                    student_id,
+                    "Unknown Student"
+                ),
+                "Topic": (
+                    class_item.get("topic")
+                    or "Untitled Essay"
+                ),
+                "Level": (
+                    class_item.get("level")
+                    or "Not Set"
+                ),
+                "Score": (
+                    class_item.get("badge_score")
+                    if class_item.get("badge_score")
+                    is not None
+                    else "—"
+                ),
+                "Status": (
+                    "Completed"
+                    if class_item.get("ended_at")
+                    else "In Progress"
+                ),
+                "Started": format_dashboard_date(
+                    class_item.get("started_at")
+                ),
+                "Started Raw": safe_datetime(
+                    class_item.get("started_at")
+                )
+            }
+        )
+
+    if not activity_rows:
+        return pd.DataFrame()
+
+    activity_df = pd.DataFrame(activity_rows)
+
+    activity_df = activity_df.sort_values(
+        by="Started Raw",
+        ascending=False,
+        na_position="last"
+    )
+
+    activity_df = activity_df.head(limit)
+
+    return activity_df.drop(
+        columns=["Started Raw"],
+        errors="ignore"
+    )
+
+
+def render_metric_card(
+    title,
+    value,
+    icon,
+    description=""
+):
+    st.markdown(
+        f"""
+        <div class="teacher-metric-card">
+            <div class="teacher-metric-top">
+                <div class="teacher-metric-icon">
+                    <span class="material-symbols-rounded">
+                        {icon}
+                    </span>
+                </div>
+            </div>
+
+            <div class="teacher-metric-value">
+                {html.escape(str(value))}
+            </div>
+
+            <div class="teacher-metric-title">
+                {html.escape(str(title))}
+            </div>
+
+            <div class="teacher-metric-description">
+                {html.escape(str(description))}
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+
+def render_teacher_dashboard(
+    db,
+    user_id,
+    user_email,
+    profile,
+    admin_mode=False
+):
+    """
+    Main teacher dashboard.
+    """
+
+    teacher_name = (
+        profile.get("full_name")
+        or user_email
+    )
+
+    st.markdown(
+        """
+        <style>
+        .teacher-main-header {
+            background:
+                radial-gradient(
+                    circle at top right,
+                    rgba(255,255,255,0.20),
+                    transparent 35%
+                ),
+                linear-gradient(
+                    135deg,
+                    #312e81,
+                    #4f46e5,
+                    #9333ea
+                );
+            border-radius: 26px;
+            color: white;
+            padding: 34px 38px;
+            margin-bottom: 25px;
+            box-shadow:
+                0 20px 50px rgba(79,70,229,0.20);
+        }
+
+        .teacher-main-header h1 {
+            margin: 4px 0 8px 0;
+            font-size: 36px;
+            font-weight: 800;
+        }
+
+        .teacher-main-header p {
+            margin: 0;
+            opacity: 0.90;
+            font-size: 16px;
+        }
+
+        .teacher-header-label {
+            font-size: 12px;
+            letter-spacing: 1.5px;
+            font-weight: 800;
+            opacity: 0.80;
+        }
+
+        .teacher-metric-card {
+            background: white;
+            border: 1px solid #e8eaf3;
+            border-radius: 20px;
+            padding: 20px;
+            min-height: 165px;
+            box-shadow:
+                0 10px 30px rgba(15,23,42,0.06);
+        }
+
+        .teacher-metric-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .teacher-metric-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 42px;
+            height: 42px;
+            border-radius: 13px;
+            background: #eef2ff;
+            color: #4f46e5;
+        }
+
+        .teacher-metric-value {
+            color: #0f172a;
+            font-size: 31px;
+            line-height: 1.1;
+            font-weight: 800;
+            margin-top: 17px;
+        }
+
+        .teacher-metric-title {
+            color: #334155;
+            font-size: 14px;
+            font-weight: 700;
+            margin-top: 5px;
+        }
+
+        .teacher-metric-description {
+            color: #94a3b8;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+
+        .teacher-section-card {
+            background: white;
+            border: 1px solid #e8eaf3;
+            border-radius: 20px;
+            padding: 22px;
+            margin-top: 18px;
+            box-shadow:
+                0 8px 25px rgba(15,23,42,0.04);
+        }
+
+        .student-detail-header {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 18px;
+            padding: 20px;
+            margin: 15px 0;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
+    # -----------------------------------------------------
+    # Sidebar
+    # -----------------------------------------------------
+
+    with st.sidebar:
+        st.title(
+            ":material/dashboard: Teacher Portal"
+        )
+
+        if admin_mode:
+            if st.button(
+                ":material/arrow_back: Back to Admin",
+                use_container_width=True,
+                key="teacher_back_to_admin"
+            ):
+                st.session_state.admin_view_mode = "admin"
+                st.rerun()
+
+            st.divider()
+
+        st.write(
+            f":material/person: **Welcome, "
+            f"{teacher_name}**"
+        )
+
+        st.caption(user_email)
+
+        st.divider()
+
+        teacher_page = st.radio(
+            "Teacher Navigation",
+            [
+                "Overview",
+                "Students",
+                "Student Details",
+                "Recent Activity"
+            ],
+            label_visibility="collapsed",
+            key="teacher_page_navigation"
+        )
+
+        st.divider()
+
+        if st.button(
+            ":material/refresh: Refresh Data",
+            use_container_width=True,
+            key="refresh_teacher_data"
+        ):
+            st.rerun()
+
+        if st.button(
+            ":material/logout: Logout",
+            use_container_width=True,
+            key="teacher_dashboard_logout"
+        ):
+            st.session_state.clear()
+            st.rerun()
+
+    # For the current demo, service client is used so the
+    # admin/teacher dashboard can read all student records.
+    data_client = supabase_service
+
+    students, classes, submissions = (
+        load_teacher_dashboard_data(data_client)
+    )
+
+    progress_df = build_student_progress_dataframe(
+        students,
+        classes,
+        submissions
+    )
+
+    # -----------------------------------------------------
+    # Header
+    # -----------------------------------------------------
+
+    st.markdown(
+        f"""
+        <div class="teacher-main-header">
+            <div class="teacher-header-label">
+                AI INSTRUCTOR PRO
+            </div>
+
+            <h1>Teacher Dashboard</h1>
+
+            <p>
+                Welcome, {html.escape(teacher_name)}.
+                Monitor student participation, essay completion,
+                performance and writing activity.
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    # -----------------------------------------------------
+    # Metrics
+    # -----------------------------------------------------
+
+    total_students = len(progress_df)
+
+    active_students = 0
+
+    if (
+        not progress_df.empty
+        and "Essays Started" in progress_df.columns
+    ):
+        active_students = int(
+            (progress_df["Essays Started"] > 0).sum()
+        )
+
+    total_completed = (
+        int(progress_df["Essays Completed"].sum())
+        if not progress_df.empty
+        else 0
+    )
+
+    scored_students = (
+        progress_df[
+            progress_df["Average Score"] > 0
+        ]
+        if not progress_df.empty
+        else pd.DataFrame()
+    )
+
+    average_score = (
+        round(
+            scored_students["Average Score"].mean(),
+            1
+        )
+        if not scored_students.empty
+        else 0
+    )
+
+    c1, c2, c3, c4 = st.columns(4)
+
+    with c1:
+        render_metric_card(
+            "Total Students",
+            total_students,
+            "groups",
+            "Registered student accounts"
+        )
+
+    with c2:
+        render_metric_card(
+            "Active Students",
+            active_students,
+            "person_check",
+            "Students who started an essay"
+        )
+
+    with c3:
+        render_metric_card(
+            "Essays Completed",
+            total_completed,
+            "task_alt",
+            "Completed essay sessions"
+        )
+
+    with c4:
+        render_metric_card(
+            "Average Score",
+            f"{average_score}%",
+            "monitoring",
+            "Average completed essay score"
+        )
+
+    # -----------------------------------------------------
+    # Overview Page
+    # -----------------------------------------------------
+
+    if teacher_page == "Overview":
+        st.markdown("## Class Overview")
+
+        if progress_df.empty:
+            st.info(
+                "No student accounts were found."
+            )
+
+        else:
+            chart_col1, chart_col2 = st.columns(2)
+
+            with chart_col1:
+                st.markdown("### Completion by Student")
+
+                completion_chart = (
+                    progress_df[
+                        [
+                            "Student",
+                            "Completion Rate"
+                        ]
+                    ]
+                    .set_index("Student")
+                    .sort_values(
+                        "Completion Rate",
+                        ascending=False
+                    )
+                )
+
+                st.bar_chart(
+                    completion_chart,
+                    use_container_width=True
+                )
+
+            with chart_col2:
+                st.markdown("### Average Scores")
+
+                score_chart = (
+                    progress_df[
+                        [
+                            "Student",
+                            "Average Score"
+                        ]
+                    ]
+                    .set_index("Student")
+                    .sort_values(
+                        "Average Score",
+                        ascending=False
+                    )
+                )
+
+                st.bar_chart(
+                    score_chart,
+                    use_container_width=True
+                )
+
+            st.markdown("### Students Requiring Attention")
+
+            attention_df = progress_df[
+                progress_df["Risk"].isin(
+                    [
+                        "High",
+                        "Medium",
+                        "No Activity"
+                    ]
+                )
+            ]
+
+            if attention_df.empty:
+                st.success(
+                    "No students are currently flagged."
+                )
+
+            else:
+                st.dataframe(
+                    attention_df[
+                        [
+                            "Student",
+                            "Level",
+                            "Essays Started",
+                            "Essays Completed",
+                            "Average Score",
+                            "Late Submissions",
+                            "Risk",
+                            "Last Active"
+                        ]
+                    ],
+                    use_container_width=True,
+                    hide_index=True
+                )
+
+    # -----------------------------------------------------
+    # Students Page
+    # -----------------------------------------------------
+
+    elif teacher_page == "Students":
+        st.markdown("## All Students")
+
+        if progress_df.empty:
+            st.info("No students found.")
+
+        else:
+            filter_col1, filter_col2 = st.columns(2)
+
+            with filter_col1:
+                available_levels = sorted(
+                    progress_df["Level"]
+                    .dropna()
+                    .unique()
+                    .tolist()
+                )
+
+                selected_level = st.selectbox(
+                    "Filter by Education Level",
+                    ["All"] + available_levels,
+                    key="teacher_level_filter"
+                )
+
+            with filter_col2:
+                selected_status = st.selectbox(
+                    "Filter by Status",
+                    [
+                        "All",
+                        "Not Started",
+                        "In Progress",
+                        "Completed"
+                    ],
+                    key="teacher_status_filter"
+                )
+
+            filtered_df = progress_df.copy()
+
+            if selected_level != "All":
+                filtered_df = filtered_df[
+                    filtered_df["Level"]
+                    == selected_level
+                ]
+
+            if selected_status != "All":
+                filtered_df = filtered_df[
+                    filtered_df["Status"]
+                    == selected_status
+                ]
+
+            display_columns = [
+                "Student",
+                "Email",
+                "Level",
+                "Essays Started",
+                "Essays Completed",
+                "Completion Rate",
+                "Average Score",
+                "Paragraphs Submitted",
+                "Late Submissions",
+                "Risk",
+                "Last Active"
+            ]
+
+            st.dataframe(
+                filtered_df[display_columns],
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    "Completion Rate":
+                        st.column_config.ProgressColumn(
+                            "Completion",
+                            min_value=0,
+                            max_value=100,
+                            format="%.1f%%"
+                        ),
+                    "Average Score":
+                        st.column_config.NumberColumn(
+                            "Average Score",
+                            format="%.1f%%"
+                        )
+                }
+            )
+
+            csv_data = filtered_df[
+                display_columns
+            ].to_csv(index=False)
+
+            st.download_button(
+                "Download Student Progress CSV",
+                data=csv_data,
+                file_name="student_progress.csv",
+                mime="text/csv",
+                use_container_width=True
+            )
+
+    # -----------------------------------------------------
+    # Student Details Page
+    # -----------------------------------------------------
+
+    elif teacher_page == "Student Details":
+        st.markdown("## Individual Student Report")
+
+        if progress_df.empty:
+            st.info("No students found.")
+
+        else:
+            student_options = (
+                progress_df["Student"]
+                .dropna()
+                .tolist()
+            )
+
+            selected_student_name = st.selectbox(
+                "Select Student",
+                student_options,
+                key="teacher_selected_student"
+            )
+
+            selected_row = progress_df[
+                progress_df["Student"]
+                == selected_student_name
+            ].iloc[0]
+
+            selected_student_id = selected_row[
+                "Student ID"
+            ]
+
+            st.markdown(
+                f"""
+                <div class="student-detail-header">
+                    <h3 style="margin:0;">
+                        {html.escape(
+                            str(selected_row["Student"])
+                        )}
+                    </h3>
+
+                    <div style="
+                        margin-top:8px;
+                        color:#64748b;
+                    ">
+                        {html.escape(
+                            str(selected_row["Email"])
+                        )}
+                        &nbsp; • &nbsp;
+                        {html.escape(
+                            str(selected_row["Level"])
+                        )}
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+            d1, d2, d3, d4 = st.columns(4)
+
+            d1.metric(
+                "Essays Started",
+                int(selected_row["Essays Started"])
+            )
+
+            d2.metric(
+                "Essays Completed",
+                int(selected_row["Essays Completed"])
+            )
+
+            d3.metric(
+                "Average Score",
+                f"{selected_row['Average Score']}%"
+            )
+
+            d4.metric(
+                "Total Words",
+                int(selected_row["Total Words"])
+            )
+
+            selected_classes = [
+                item
+                for item in classes
+                if item.get("user_id")
+                == selected_student_id
+            ]
+
+            if not selected_classes:
+                st.info(
+                    "This student has not started an essay."
+                )
+
+            else:
+                essay_rows = []
+
+                for item in selected_classes:
+                    essay_rows.append(
+                        {
+                            "Topic": (
+                                item.get("topic")
+                                or "Untitled Essay"
+                            ),
+                            "Level": (
+                                item.get("level")
+                                or "Not Set"
+                            ),
+                            "Score": (
+                                item.get("badge_score")
+                                if item.get("badge_score")
+                                is not None
+                                else "—"
+                            ),
+                            "Badge": (
+                                item.get("badge")
+                                or "—"
+                            ),
+                            "Status": (
+                                "Completed"
+                                if item.get("ended_at")
+                                else "In Progress"
+                            ),
+                            "Started": format_dashboard_date(
+                                item.get("started_at")
+                            ),
+                            "Completed": format_dashboard_date(
+                                item.get("ended_at")
+                            )
+                        }
+                    )
+
+                st.markdown("### Essay History")
+
+                st.dataframe(
+                    pd.DataFrame(essay_rows),
+                    use_container_width=True,
+                    hide_index=True
+                )
+
+            selected_submissions = [
+                item
+                for item in submissions
+                if item.get("user_id")
+                == selected_student_id
+            ]
+
+            if selected_submissions:
+                st.markdown("### Writing Activity")
+
+                submission_rows = []
+
+                for item in selected_submissions:
+                    submission_rows.append(
+                        {
+                            "Essay Session": (
+                                item.get("class_id")
+                                or ""
+                            ),
+                            "Section": (
+                                item.get("part")
+                                or ""
+                            ),
+                            "Word Count": (
+                                item.get("word_count")
+                                or 0
+                            ),
+                            "Late": (
+                                "Yes"
+                                if item.get("late")
+                                else "No"
+                            )
+                        }
+                    )
+
+                st.dataframe(
+                    pd.DataFrame(submission_rows),
+                    use_container_width=True,
+                    hide_index=True
+                )
+
+    # -----------------------------------------------------
+    # Recent Activity Page
+    # -----------------------------------------------------
+
+    elif teacher_page == "Recent Activity":
+        st.markdown("## Recent Student Activity")
+
+        recent_df = get_recent_student_activity(
+            students,
+            classes,
+            limit=20
+        )
+
+        if recent_df.empty:
+            st.info(
+                "No essay activity has been recorded."
+            )
+
+        else:
+            st.dataframe(
+                recent_df,
+                use_container_width=True,
+                hide_index=True
+            )
 # ---------------- Main App ----------------
 
 user_id, user_email, access_token = auth_gate()
