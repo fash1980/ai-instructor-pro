@@ -701,15 +701,17 @@ def auth_gate():
             
             prof = (
                 supabase_service.table("profiles")
-                .select("id, email, full_name")
+                .select(
+                    "id, email, full_name, role, education_level, age"
+                )
                 .eq("email", google_email)
                 .limit(1)
                 .execute()
             )
             
             # Temporary debug
-            st.write("Google email from token:", google_email)
-            st.write("Matched profiles:", prof.data)
+            #st.write("Google email from token:", google_email)
+            #st.write("Matched profiles:", prof.data)
             
             if not prof.data:
                 st.error("No account found for this Google email. Please sign up first using the Sign Up form.")
