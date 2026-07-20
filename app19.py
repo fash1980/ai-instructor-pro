@@ -2515,8 +2515,7 @@ elif st.session_state.step == "COLLECT_PART":
                     f"Bahasa Melayu | Target: {min_w}-{max_w} words",
                     height=220,
                     key=f"malay_input_{st.session_state.part_i}",
-                    placeholder="Taip atau gunakan mikrofon untuk Bahasa Melayu...",
-                    disabled=(active_lang != "Bahasa Melayu")
+                    placeholder="Taip atau gunakan mikrofon untuk Bahasa Melayu..."
                 )
             
             with lang_col2:
@@ -2524,8 +2523,7 @@ elif st.session_state.step == "COLLECT_PART":
                     f"English | Target: {min_w}-{max_w} words",
                     height=220,
                     key=f"english_input_{st.session_state.part_i}",
-                    placeholder="Type or use the microphone for English...",
-                    disabled=(active_lang != "English")
+                    placeholder="Type or use the microphone for English..."
                 )
             
             # 3. MICROPHONE COMPONENT YAHAN PASTE KARNA HAI
@@ -2543,9 +2541,236 @@ elif st.session_state.step == "COLLECT_PART":
             
             components.html(
                 f"""
-                <!-- Complete microphone HTML/JavaScript code here -->
+            <!DOCTYPE html>
+            <html>
+            <head>
+            <style>
+            body {{
+                margin: 0;
+                background: transparent;
+                font-family: Arial, sans-serif;
+            }}
+            
+            .voice-row {{
+                display: flex;
+                align-items: center;
+                gap: 12px;
+            }}
+            
+            .mic-btn {{
+                border: none;
+                border-radius: 12px;
+                padding: 11px 18px;
+                background: #6366f1;
+                color: white;
+                font-size: 15px;
+                font-weight: 600;
+                cursor: pointer;
+            }}
+            
+            .mic-btn.listening {{
+                background: #dc2626;
+            }}
+            
+            .stop-btn {{
+                display: none;
+                border: 1px solid #cbd5e1;
+                border-radius: 12px;
+                padding: 11px 18px;
+                background: white;
+                color: #334155;
+                cursor: pointer;
+            }}
+            
+            .status {{
+                color: #64748b;
+                font-size: 14px;
+            }}
+            </style>
+            </head>
+            
+            <body>
+            <div class="voice-row">
+                <button id="micBtn" class="mic-btn">
+                    🎤 Start Speaking
+                </button>
+            
+                <button id="stopBtn" class="stop-btn">
+                    ⏹ Stop
+                </button>
+            
+                <span id="status" class="status">
+                    Speak in {active_lang}
+                </span>
+            </div>
+            
+            <script>
+            (function() {{
+                const SpeechRecognition =
+                    window.SpeechRecognition ||
+                    window.webkitSpeechRecognition;
+            
+                const micBtn =
+                    document.getElementById("micBtn");
+            
+                const stopBtn =
+                    document.getElementById("stopBtn");
+            
+                const status =
+                    document.getElementById("status");
+            
+                if (!SpeechRecognition) {{
+                    micBtn.disabled = true;
+                    status.innerText =
+                        "Use Chrome or Edge for microphone input.";
+                    return;
+                }}
+            
+                const recognition =
+                    new SpeechRecognition();
+            
+                recognition.lang =
+                    "{speech_language_code}";
+            
+                recognition.continuous = true;
+                recognition.interimResults = false;
+            
+                function findTargetTextarea() {{
+                    const textareas =
+                        window.parent.document.querySelectorAll(
+                            "textarea"
+                        );
+            
+                    const currentBoxes =
+                        Array.from(textareas).slice(-2);
+            
+                    return currentBoxes[
+                        {speech_target_index}
+                    ];
+                }}
+            
+                function setTextareaValue(
+                    textarea,
+                    newText
+                ) {{
+                    const setter =
+                        Object.getOwnPropertyDescriptor(
+                            window.HTMLTextAreaElement.prototype,
+                            "value"
+                        ).set;
+            
+                    setter.call(
+                        textarea,
+                        newText
+                    );
+            
+                    textarea.dispatchEvent(
+                        new Event(
+                            "input",
+                            {{ bubbles: true }}
+                        )
+                    );
+            
+                    textarea.dispatchEvent(
+                        new Event(
+                            "change",
+                            {{ bubbles: true }}
+                        )
+                    );
+                }}
+            
+                micBtn.onclick = function() {{
+                    try {{
+                        recognition.start();
+            
+                        micBtn.classList.add(
+                            "listening"
+                        );
+            
+                        micBtn.innerText =
+                            "🔴 Listening...";
+            
+                        stopBtn.style.display =
+                            "inline-block";
+            
+                        status.innerText =
+                            "Speak in {active_lang}";
+                    }}
+                    catch (error) {{
+                        status.innerText =
+                            "Microphone is already active.";
+                    }}
+                }};
+            
+                stopBtn.onclick = function() {{
+                    recognition.stop();
+                }};
+            
+                recognition.onresult = function(event) {{
+                    let spokenText = "";
+            
+                    for (
+                        let i = event.resultIndex;
+                        i < event.results.length;
+                        i++
+                    ) {{
+                        if (event.results[i].isFinal) {{
+                            spokenText +=
+                                event.results[i][0]
+                                .transcript + " ";
+                        }}
+                    }}
+            
+                    const textarea =
+                        findTargetTextarea();
+            
+                    if (!textarea) {{
+                        status.innerText =
+                            "Writing box not found.";
+                        return;
+                    }}
+            
+                    const oldText =
+                        textarea.value.trim();
+            
+                    const newText =
+                        oldText
+                            ? oldText + " " +
+                              spokenText.trim()
+                            : spokenText.trim();
+            
+                    setTextareaValue(
+                        textarea,
+                        newText
+                    );
+            
+                    status.innerText =
+                        "Speech added to the selected box.";
+                }};
+            
+                recognition.onerror = function(event) {{
+                    status.innerText =
+                        "Microphone error: " +
+                        event.error;
+                }};
+            
+                recognition.onend = function() {{
+                    micBtn.classList.remove(
+                        "listening"
+                    );
+            
+                    micBtn.innerText =
+                        "🎤 Start Speaking";
+            
+                    stopBtn.style.display =
+                        "none";
+                }};
+            }})();
+            </script>
+            </body>
+            </html>
                 """,
-                height=75
+                height=65
             )
             
             # 4. Translation and selected student text logic
