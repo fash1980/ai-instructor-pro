@@ -2586,29 +2586,7 @@ elif st.session_state.step == "COLLECT_PART":
                 "Submit Paragraph"
             )
             
-            # Decide active box
-            active_lang = st.radio(
-                "Active typing language",
-                ["Bahasa Melayu", "English"],
-                horizontal=True,
-                key=f"active_lang_{st.session_state.part_i}"
-            )
-            
-            if active_lang == "Bahasa Melayu":
-                student_text = malay_text
-                english_translation = translate_malay_to_english(malay_text) if malay_text.strip() else ""
-                st.caption("English translation:")
-                st.info(english_translation if english_translation else "English translation will appear here.")
-            else:
-                student_text = english_text
-                malay_translation = translate_english_to_malay(english_text) if english_text.strip() else ""
-                st.caption("Bahasa Melayu translation:")
-                st.info(malay_translation if malay_translation else "Bahasa Melayu translation will appear here.")
-
-            #st.caption(f"Word count: {word_count(student_text)} / min {min_w}")
-
-            submitted = st.form_submit_button("Submit Paragraph")
-
+           
         # Warnings (outside form is fine)
         if remaining <= 10 and remaining > 0:
             st.warning("⚠️ Hurry! Only a few seconds left.")
