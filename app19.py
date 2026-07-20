@@ -2499,6 +2499,7 @@ elif st.session_state.step == "COLLECT_PART":
                 </script>
             """, height=95)
             # Student can use only these two languages
+            # 1. Language selection
             active_lang = st.radio(
                 "Choose your writing / speaking language",
                 ["Bahasa Melayu", "English"],
@@ -2506,6 +2507,7 @@ elif st.session_state.step == "COLLECT_PART":
                 key=f"active_lang_{st.session_state.part_i}"
             )
             
+            # 2. Two text areas
             lang_col1, lang_col2 = st.columns(2)
             
             with lang_col1:
@@ -2525,6 +2527,64 @@ elif st.session_state.step == "COLLECT_PART":
                     placeholder="Type or use the microphone for English...",
                     disabled=(active_lang != "English")
                 )
+            
+            # 3. MICROPHONE COMPONENT YAHAN PASTE KARNA HAI
+            speech_language_code = (
+                "ms-MY"
+                if active_lang == "Bahasa Melayu"
+                else "en-US"
+            )
+            
+            speech_target_index = (
+                0
+                if active_lang == "Bahasa Melayu"
+                else 1
+            )
+            
+            components.html(
+                f"""
+                <!-- Complete microphone HTML/JavaScript code here -->
+                """,
+                height=75
+            )
+            
+            # 4. Translation and selected student text logic
+            if active_lang == "Bahasa Melayu":
+                student_text = malay_text
+            
+                english_translation = (
+                    translate_malay_to_english(malay_text)
+                    if malay_text.strip()
+                    else ""
+                )
+            
+                st.caption("English translation:")
+                st.info(
+                    english_translation
+                    if english_translation
+                    else "English translation will appear here."
+                )
+            
+            else:
+                student_text = english_text
+            
+                malay_translation = (
+                    translate_english_to_malay(english_text)
+                    if english_text.strip()
+                    else ""
+                )
+            
+                st.caption("Bahasa Melayu translation:")
+                st.info(
+                    malay_translation
+                    if malay_translation
+                    else "Bahasa Melayu translation will appear here."
+                )
+            
+            # 5. Submit button
+            submitted = st.form_submit_button(
+                "Submit Paragraph"
+            )
             
             # Decide active box
             active_lang = st.radio(
