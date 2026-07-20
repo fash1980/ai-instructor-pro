@@ -1114,6 +1114,22 @@ elif user_role == "teacher":
 # Sidebar
 with st.sidebar:
     st.title(":material/settings: Class Settings")
+
+    # Only visible when admin opened student mode
+    if user_role == "admin":
+        if st.button(
+            ":material/arrow_back: Back to Admin",
+            use_container_width=True,
+            key="student_back_to_admin"
+        ):
+            st.session_state.admin_view_mode = "admin"
+            st.rerun()
+
+        st.divider()
+
+    st.write(
+        f":material/person: **Welcome, {user_email}**"
+    )
     st.write(f":material/person: **Welcome, {user_email}**")
 
     # Use the saved level as the default index
