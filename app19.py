@@ -1884,30 +1884,18 @@ def render_teacher_dashboard(
             ]
 
             st.markdown(
-                f"""
-                <div class="student-detail-header">
-                    <h3 style="margin:0;">
-                        {html.escape(
-                            str(selected_row["Student"])
-                        )}
-                    </h3>
-
-                    <div style="
-                        margin-top:8px;
-                        color:#64748b;
-                    ">
-                        {html.escape(
-                            str(selected_row["Email"])
-                        )}
-                        &nbsp; • &nbsp;
-                        {html.escape(
-                            str(selected_row["Level"])
-                        )}
-                    </div>
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
+    f"""<div class="student-detail-header">
+<h3 style="margin:0;">
+{html.escape(str(selected_row["Student"]))}
+</h3>
+<div style="margin-top:8px; color:#64748b;">
+{html.escape(str(selected_row["Email"]))}
+&nbsp; • &nbsp;
+{html.escape(str(selected_row["Level"]))}
+</div>
+</div>""",
+    unsafe_allow_html=True
+)
 
             d1, d2, d3, d4 = st.columns(4)
 
