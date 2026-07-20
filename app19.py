@@ -1569,21 +1569,22 @@ def render_teacher_dashboard(
     # -----------------------------------------------------
 
     st.markdown(
-        f"""<div class="teacher-main-header">
-    <div class="teacher-header-label">
-                AI INSTRUCTOR PRO
-    </div>
+    f"""<div class="teacher-main-header">
+<div class="teacher-header-label">
+AI INSTRUCTOR PRO
+</div>
 
-    <h1>Teacher Dashboard</h1>
+<h1>Teacher Dashboard</h1>
 
-    <p>
-                Welcome, {html.escape(teacher_name)}.
-                Monitor student participation, essay completion,
-                performance and writing activity.
-    </p>
-    </div>""",
-        unsafe_allow_html=True
-    )
+<p>
+Welcome, {html.escape(teacher_name)}.
+Monitor student participation, essay completion,
+performance and writing activity.
+</p>
+
+</div>""",
+    unsafe_allow_html=True,
+)
 
     # -----------------------------------------------------
     # Metrics
