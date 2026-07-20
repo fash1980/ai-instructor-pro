@@ -765,40 +765,119 @@ def auth_gate():
                         st.error(f"Invalid email or password: {e}")
 
             with tab_signup:
-                reg_name = st.text_input("Full Name", placeholder="Enter your name", key="reg_name")
-                reg_age = st.number_input("Age", min_value=5, max_value=100, value=15, key="reg_age")
-                reg_lvl = st.selectbox(
-                    "Education Level",
-                    ["Primary", "Secondary", "Higher Secondary"],
-                    key="reg_lvl_form",
+
+    # Public users can create Student or Teacher accounts.
+    # Admin accounts must be assigned manually in Supabase.
+    reg_role = st.radio(
+        "Create account as",
+        ["Student", "Teacher"],
+        horizontal=True,
+        key="reg_role"
+    )
+
+    reg_name = st.text_input(
+        "Full Name",
+        placeholder="Enter your full name",
+        key="reg_name"
+    )
+
+    # Student-specific fields
+    if reg_role == "Student":
+
+        reg_age = st.number_input(
+            "Age",
+            min_value=5,
+            max_value=100,
+            value=15,
+            key="reg_age"
+        )
+
+        reg_lvl = st.selectbox(
+            "Education Level",
+            [
+                "Primary",
+                "Secondary",
+                "Higher Secondary"
+            ],
+            key="reg_lvl_form"
+        )
+
+    # Teacher-specific defaults
+    else:
+        reg_age = None
+        reg_lvl = None
+
+        st.info(
+            "Teacher accounts will open the Teacher Dashboard "
+            "after signing in."
+        )
+
+    reg_email = st.text_input(
+        "Email",
+        key="reg_email"
+    )
+
+    reg_pw = st.text_input(
+        "Password",
+        type="password",
+        key="reg_pw"
+    )
+
+    if st.button(
+        "Create Account",
+        use_container_width=True,
+        key="create_account_button"
+    ):
+
+        clean_name = reg_name.strip()
+        clean_email = reg_email.strip().lower()
+
+        if not clean_name or not clean_email or not reg_pw:
+            st.warning("Please fill in all required fields.")
+
+        elif len(reg_pw) < 6:
+            st.warning(
+                "Password must contain at least 6 characters."
+            )
+
+        else:
+            try:
+                auth_res = supabase_admin.auth.sign_up(
+                    {
+                        "email": clean_email,
+                        "password": reg_pw
+                    }
                 )
-                reg_email = st.text_input("Email", key="reg_email")
-                reg_pw = st.text_input("Password", type="password", key="reg_pw")
 
-                if st.button("Create Account", use_container_width=True):
-                    if reg_name and reg_email and reg_pw:
-                        try:
-                            auth_res = supabase_admin.auth.sign_up(
-                                {"email": reg_email, "password": reg_pw}
-                            )
+                if not auth_res.user:
+                    st.error(
+                        "Account could not be created. "
+                        "Please try again."
+                    )
 
-                            if auth_res.user:
-                                supabase_admin.table("profiles").upsert(
-                                    {
-                                        "id": auth_res.user.id,
-                                        "full_name": reg_name,
-                                        "email": reg_email,
-                                        "age": reg_age,
-                                        "education_level": reg_lvl,
-                                    }
-                                ).execute()
+                else:
+                    profile_payload = {
+                        "id": auth_res.user.id,
+                        "full_name": clean_name,
+                        "email": clean_email,
+                        "age": reg_age,
+                        "education_level": reg_lvl,
+                        "role": reg_role.lower()
+                    }
 
-                                st.success("Account created! You can now Sign In.")
+                    supabase_admin.table(
+                        "profiles"
+                    ).upsert(
+                        profile_payload
+                    ).execute()
 
-                        except Exception as e:
-                            st.error(f"Error: {str(e)}")
-                    else:
-                        st.warning("Please fill in all fields")
+                    st.success(
+                        f"{reg_role} account created successfully. "
+                        "You can now sign in."
+                    )
+
+            except Exception as e:
+                st.error(f"Account creation failed: {e}")
 
         st.stop()
 
