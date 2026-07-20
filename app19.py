@@ -2,6 +2,7 @@ import re
 import html
 import time
 import requests
+import textwrap
 import streamlit as st
 import pandas as pd
 from supabase import create_client
