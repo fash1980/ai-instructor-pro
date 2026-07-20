@@ -2125,19 +2125,14 @@ if user_role == "admin":
 
     # Teacher interface will be added next
     elif st.session_state.admin_view_mode == "teacher":
-        st.title("Teacher Dashboard")
-
-        st.info(
-            "Teacher dashboard layout will be connected in the next step."
+        render_teacher_dashboard(
+            db=db,
+            user_id=user_id,
+            user_email=user_email,
+            profile=profile,
+            admin_mode=True
         )
-
-        if st.button(
-            "Back to Admin Dashboard",
-            key="teacher_back_admin"
-        ):
-            st.session_state.admin_view_mode = "admin"
-            st.rerun()
-
+    
         st.stop()
 
     # Student mode continues into existing student app below
@@ -2147,15 +2142,13 @@ if user_role == "admin":
 
 # Teacher routing temporarily
 elif user_role == "teacher":
-    st.title("Teacher Dashboard")
-
-    st.info(
-        "Teacher dashboard will be designed in the next step."
+    render_teacher_dashboard(
+        db=db,
+        user_id=user_id,
+        user_email=user_email,
+        profile=profile,
+        admin_mode=False
     )
-
-    if st.button("Logout", key="teacher_temp_logout"):
-        st.session_state.clear()
-        st.rerun()
 
     st.stop()
 
