@@ -2637,24 +2637,20 @@ elif st.session_state.step == "COLLECT_PART":
             
                 function findTargetTextarea() {{
                     const parentDoc = window.parent.document;
-
-                    const malayBox = parentDoc.querySelector(
-                        'textarea[placeholder="Taip atau gunakan mikrofon untuk Bahasa Melayu..."]'
+                
+                    const targetPlaceholder =
+                        "{speech_target_placeholder}";
+                
+                    const textareas = Array.from(
+                        parentDoc.querySelectorAll("textarea")
                     );
-
-                    const englishBox = parentDoc.querySelector(
-                        'textarea[placeholder="Type or use the microphone for English..."]'
-                    );
-
-                    // Dynamically check which radio button is checked in the main window
-                    const selectedRadio = parentDoc.querySelector('input[name*="active_lang"]:checked');
-                    const selectedValue = selectedRadio ? selectedRadio.value : "";
-
-                    if (selectedLanguage === "English") {{
-                        return englishBox;
-                    }}
-
-                    return malayBox;
+                
+                    return textareas.find(function(textarea) {{
+                        return (
+                            textarea.getAttribute("placeholder") ===
+                            targetPlaceholder
+                        );
+                    }}) || null;
                 }}
                 
                
@@ -2677,14 +2673,14 @@ elif st.session_state.step == "COLLECT_PART":
                     );
             
                     textarea.dispatchEvent(
-                        new Event(
+                        new window.parent.Event(
                             "input",
                             {{ bubbles: true }}
                         )
                     );
-            
+                    
                     textarea.dispatchEvent(
-                        new Event(
+                        new window.parent.Event(
                             "change",
                             {{ bubbles: true }}
                         )
@@ -2732,7 +2728,11 @@ elif st.session_state.step == "COLLECT_PART":
                                 .transcript + " ";
                         }}
                     }}
-            
+                    if (!spokenText.trim()) {{
+                        status.innerText =
+                            "No final speech was detected. Please speak again.";
+                        return;
+                    }}
                     const textarea =
                         findTargetTextarea();
             
