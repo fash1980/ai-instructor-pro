@@ -2636,17 +2636,38 @@ elif st.session_state.step == "COLLECT_PART":
                 recognition.interimResults = false;
             
                 function findTargetTextarea() {{
-                    // Search directly for the label or placeholder corresponding to active_lang
-                    const targetPrefix = "{active_lang} | Target:";
-                    const textareas = Array.from(window.parent.document.querySelectorAll("textarea"));
+                    const textareas = Array.from(
+                        window.parent.document.querySelectorAll("textarea")
+                    );
                 
-                    return textareas.find(t => {{
-                        const ariaLabel = t.getAttribute("aria-label") || "";
-                        const placeholder = t.getAttribute("placeholder") || "";
+                    const wantedPlaceholder =
+                        "{active_lang}" === "Bahasa Melayu"
+                            ? "Taip atau gunakan mikrofon untuk Bahasa Melayu..."
+                            : "Type or use the microphone for English...";
                 
-                        return ariaLabel.includes(targetPrefix) ||
-                               placeholder.toLowerCase().includes("{active_lang}".toLowerCase());
-                    }}) || textareas[{speech_target_index}];
+                    const wantedLabel =
+                        "{active_lang}" === "Bahasa Melayu"
+                            ? "Bahasa Melayu | Target:"
+                            : "English | Target:";
+                
+                    return textareas.find((textarea) => {{
+                        const placeholder =
+                            textarea.getAttribute("placeholder") || "";
+                
+                        const ariaLabel =
+                            textarea.getAttribute("aria-label") || "";
+                
+                        const isVisible =
+                            textarea.offsetParent !== null;
+                
+                        return (
+                            isVisible &&
+                            (
+                                placeholder === wantedPlaceholder ||
+                                ariaLabel.startsWith(wantedLabel)
+                            )
+                        );
+                    }});
                 }}
                 
                
