@@ -2646,7 +2646,9 @@ elif st.session_state.step == "COLLECT_PART":
                         'textarea[placeholder="Type or use the microphone for English..."]'
                     );
 
-                    const selectedLanguage = "{active_lang}";
+                    // Dynamically check which radio button is checked in the main window
+                    const selectedRadio = parentDoc.querySelector('input[name*="active_lang"]:checked');
+                    const selectedValue = selectedRadio ? selectedRadio.value : "";
 
                     if (selectedLanguage === "English") {{
                         return englishBox;
