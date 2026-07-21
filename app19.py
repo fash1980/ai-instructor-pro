@@ -2636,17 +2636,19 @@ elif st.session_state.step == "COLLECT_PART":
                 recognition.interimResults = false;
             
                 function findTargetTextarea() {{
-                    const textareas =
-                        window.parent.document.querySelectorAll(
-                            "textarea"
-                        );
-            
-                    const currentBoxes =
-                        Array.from(textareas).slice(-2);
-            
-                    return currentBoxes[
-                        {speech_target_index}
-                    ];
+                    const parentDoc = window.parent.document;
+                
+                    const targetPrefix =
+                        "{"Bahasa Melayu" if active_lang == "Bahasa Melayu" else "English"} | Target:";
+                
+                    return Array.from(
+                        parentDoc.querySelectorAll("textarea")
+                    ).find((textarea) => {{
+                        const label =
+                            textarea.getAttribute("aria-label") || "";
+                
+                        return label.startsWith(targetPrefix);
+                    }});
                 }}
             
                 function setTextareaValue(
