@@ -2645,12 +2645,12 @@ elif st.session_state.step == "COLLECT_PART":
                             window.parent.document.querySelectorAll("textarea")
                         );
                 
-                    return textareas.find(t => {
+                    return textareas.find(t => {{
                         const label =
                             t.getAttribute("aria-label") || "";
-                
+                    
                         return label.startsWith(targetPrefix);
-                    });
+                    }});
                 
                 }
             
