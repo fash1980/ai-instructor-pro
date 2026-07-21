@@ -2649,10 +2649,7 @@ elif st.session_state.step == "COLLECT_PART":
                     }}) || textareas[{speech_target_index}];
                 }}
                 
-                    return textareas.find(
-                        t => t.placeholder.includes("Bahasa Melayu")
-                    );
-                }}
+               
                 
                 
             
