@@ -2533,10 +2533,10 @@ elif st.session_state.step == "COLLECT_PART":
                 else "en-US"
             )
             
-            speech_target_index = (
-                0
+            speech_target_placeholder = (
+                "Taip atau gunakan mikrofon untuk Bahasa Melayu..."
                 if active_lang == "Bahasa Melayu"
-                else 1
+                else "Type or use the microphone for English..."
             )
             
             components.html(
@@ -2636,38 +2636,23 @@ elif st.session_state.step == "COLLECT_PART":
                 recognition.interimResults = false;
             
                 function findTargetTextarea() {{
-                    const textareas = Array.from(
-                        window.parent.document.querySelectorAll("textarea")
+                    const parentDoc = window.parent.document;
+
+                    const malayBox = parentDoc.querySelector(
+                        'textarea[placeholder="Taip atau gunakan mikrofon untuk Bahasa Melayu..."]'
                     );
-                
-                    const wantedPlaceholder =
-                        "{active_lang}" === "Bahasa Melayu"
-                            ? "Taip atau gunakan mikrofon untuk Bahasa Melayu..."
-                            : "Type or use the microphone for English...";
-                
-                    const wantedLabel =
-                        "{active_lang}" === "Bahasa Melayu"
-                            ? "Bahasa Melayu | Target:"
-                            : "English | Target:";
-                
-                    return textareas.find((textarea) => {{
-                        const placeholder =
-                            textarea.getAttribute("placeholder") || "";
-                
-                        const ariaLabel =
-                            textarea.getAttribute("aria-label") || "";
-                
-                        const isVisible =
-                            textarea.offsetParent !== null;
-                
-                        return (
-                            isVisible &&
-                            (
-                                placeholder === wantedPlaceholder ||
-                                ariaLabel.startsWith(wantedLabel)
-                            )
-                        );
-                    }});
+
+                    const englishBox = parentDoc.querySelector(
+                        'textarea[placeholder="Type or use the microphone for English..."]'
+                    );
+
+                    const selectedLanguage = "{active_lang}";
+
+                    if (selectedLanguage === "English") {{
+                        return englishBox;
+                    }}
+
+                    return malayBox;
                 }}
                 
                
