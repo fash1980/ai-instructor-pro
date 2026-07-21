@@ -2423,7 +2423,17 @@ elif st.session_state.step == "COLLECT_PART":
 
         st.markdown(f"### Writing: {current_part}")
 
-        with st.form(key=f"write_form_{st.session_state.part_i}", clear_on_submit=False):
+            active_lang = st.radio(
+                "Choose your writing / speaking language",
+                ["Bahasa Melayu", "English"],
+                horizontal=True,
+                key=f"active_lang_{st.session_state.part_i}"
+            )
+            
+            with st.form(
+                key=f"write_form_{st.session_state.part_i}",
+                clear_on_submit=False
+            ):
                     # 2. Add this HTML/JS block for the LIVE COUNTER
             components.html(f"""
                 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded" rel="stylesheet">
@@ -2500,12 +2510,7 @@ elif st.session_state.step == "COLLECT_PART":
             """, height=95)
             # Student can use only these two languages
             # 1. Language selection
-            active_lang = st.radio(
-                "Choose your writing / speaking language",
-                ["Bahasa Melayu", "English"],
-                horizontal=True,
-                key=f"active_lang_{st.session_state.part_i}"
-            )
+            
             
             # 2. Two text areas
             lang_col1, lang_col2 = st.columns(2)
