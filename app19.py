@@ -2646,8 +2646,14 @@ elif st.session_state.step == "COLLECT_PART":
                         );
                 
                     return textareas.find(t => {{
-                        const label =
-                            t.getAttribute("aria-label") || "";
+                        console.log(
+                            Array.from(window.parent.document.querySelectorAll("textarea"))
+                            .map(x => ({
+                                aria: x.getAttribute("aria-label"),
+                                placeholder: x.placeholder,
+                                value: x.value
+                            }))
+                        );
                 
                         return label.startsWith(targetPrefix);
                     }});
