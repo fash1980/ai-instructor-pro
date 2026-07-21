@@ -2652,7 +2652,7 @@ elif st.session_state.step == "COLLECT_PART":
                         return label.startsWith(targetPrefix);
                     }});
                 
-                }
+                
             
                 function setTextareaValue(
                     textarea,
