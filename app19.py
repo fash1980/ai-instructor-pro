@@ -2635,21 +2635,24 @@ elif st.session_state.step == "COLLECT_PART":
                 recognition.continuous = true;
                 recognition.interimResults = false;
             
-                function findTargetTextarea() {{
-                    const parentDoc = window.parent.document;
-                
+                function findTargetTextarea() {
+
                     const targetPrefix =
-                        "{"Bahasa Melayu" if active_lang == "Bahasa Melayu" else "English"} | Target:";
+                        "{active_lang} | Target:";
                 
-                    return Array.from(
-                        parentDoc.querySelectorAll("textarea")
-                    ).find((textarea) => {{
+                    const textareas =
+                        Array.from(
+                            window.parent.document.querySelectorAll("textarea")
+                        );
+                
+                    return textareas.find(t => {
                         const label =
-                            textarea.getAttribute("aria-label") || "";
+                            t.getAttribute("aria-label") || "";
                 
                         return label.startsWith(targetPrefix);
-                    }});
-                }}
+                    });
+                
+                }
             
                 function setTextareaValue(
                     textarea,
