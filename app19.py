@@ -2637,27 +2637,20 @@ elif st.session_state.step == "COLLECT_PART":
             
                 function findTargetTextarea() {{
 
-                    const targetPrefix =
-                        "{active_lang} | Target:";
-                
                     const textareas =
                         Array.from(
                             window.parent.document.querySelectorAll("textarea")
                         );
                 
-                    return textareas.find(t => {{
-                        console.log(
-                            Array.from(window.parent.document.querySelectorAll("textarea"))
-                            .map(x => ({
-                                aria: x.getAttribute("aria-label"),
-                                placeholder: x.placeholder,
-                                value: x.value
-                            }))
+                    if ("{active_lang}" === "English") {{
+                        return textareas.find(
+                            t => t.placeholder.includes("English")
                         );
+                    }}
                 
-                        return label.startsWith(targetPrefix);
-                    }});
-                
+                    return textareas.find(
+                        t => t.placeholder.includes("Bahasa Melayu")
+                    );
                 }}
                 
                 
