@@ -2635,7 +2635,7 @@ elif st.session_state.step == "COLLECT_PART":
                 recognition.continuous = true;
                 recognition.interimResults = false;
             
-                function findTargetTextarea() {
+                function findTargetTextarea() {{
 
                     const targetPrefix =
                         "{active_lang} | Target:";
@@ -2648,9 +2648,11 @@ elif st.session_state.step == "COLLECT_PART":
                     return textareas.find(t => {{
                         const label =
                             t.getAttribute("aria-label") || "";
-                    
+                
                         return label.startsWith(targetPrefix);
                     }});
+                
+                }}
                 
                 
             
