@@ -2635,20 +2635,19 @@ elif st.session_state.step == "COLLECT_PART":
                 recognition.continuous = true;
                 recognition.interimResults = false;
             
-                function findTargetTextarea() {
+                function findTargetTextarea() {{
                     // Search directly for the label or placeholder corresponding to active_lang
                     const targetPrefix = "{active_lang} | Target:";
                     const textareas = Array.from(window.parent.document.querySelectorAll("textarea"));
                 
-                    return textareas.find(t => {
+                    return textareas.find(t => {{
                         const ariaLabel = t.getAttribute("aria-label") || "";
                         const placeholder = t.getAttribute("placeholder") || "";
-                        
-                        // Match either aria-label or placeholder targeting the selected language
-                        return ariaLabel.includes(targetPrefix) || 
+                
+                        return ariaLabel.includes(targetPrefix) ||
                                placeholder.toLowerCase().includes("{active_lang}".toLowerCase());
-                    }) || textareas[{speech_target_index}]; // Fallback to explicitly targeted index
-                }
+                    }}) || textareas[{speech_target_index}];
+                }}
                 
                     return textareas.find(
                         t => t.placeholder.includes("Bahasa Melayu")
