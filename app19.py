@@ -2657,7 +2657,7 @@ elif st.session_state.step == "COLLECT_PART":
                 ) {{
                     const setter =
                         Object.getOwnPropertyDescriptor(
-                            window.HTMLTextAreaElement.prototype,
+                            window.parent.HTMLTextAreaElement.prototype
                             "value"
                         ).set;
             
