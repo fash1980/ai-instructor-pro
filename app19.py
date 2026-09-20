@@ -2762,19 +2762,19 @@ elif st.session_state.step == "COLLECT_PART":
                 );
                 
                 // Automatically sync speech with Streamlit
-                setTimeout(function() {
+                setTimeout(function() {{
                     const buttons = Array.from(
                         window.parent.document.querySelectorAll("button")
                     );
                 
-                    const syncButton = buttons.find(function(btn) {
+                    const syncButton = buttons.find(function(btn) {{
                         return btn.innerText.includes("Sync Translation");
-                    });
+                    }});
                 
-                    if (syncButton) {
+                    if (syncButton) {{
                         syncButton.click();
-                    }
-                }, 200);
+                    }}
+                }}, 200);
                 
                 status.innerText =
                     "Speech added to the selected box.";
