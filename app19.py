@@ -2825,7 +2825,7 @@ elif st.session_state.step == "COLLECT_PART":
             
             # 5. Submit button
             submitted = st.form_submit_button(
-                "Submit Paragraph"
+                "Submit Paragraph",
                 disabled=st.session_state.is_processing
             )
             
