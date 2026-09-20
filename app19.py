@@ -442,25 +442,56 @@ def ollama_chat(messages, temperature=0.7, max_tokens=300):
 
     except Exception as e:
         return f"⚠️ Groq Error: {e}"
+@st.cache_data(ttl=3600, show_spinner=False)
 def translate_english_to_malay(english_text):
-    if not english_text.strip():
+    text = (english_text or "").strip()
+
+    if not text:
         return ""
-    try:
-        return GoogleTranslator(source="en", target="ms").translate(english_text)
-    except Exception:
-        return english_text
+
+    return ollama_chat(
+        [
+            {
+                "role": "system",
+                "content": (
+                    "Translate English to Bahasa Melayu. "
+                    "Return ONLY the translation."
+                )
+            },
+            {
+                "role": "user",
+                "content": text
+            }
+        ],
+        temperature=0.0,
+        max_tokens=80
+    )
+
+
+@st.cache_data(ttl=3600, show_spinner=False)
 def translate_malay_to_english(malay_text):
-    if not malay_text.strip():
+    text = (malay_text or "").strip()
+
+    if not text:
         return ""
 
-    try:
-        return GoogleTranslator(
-            source="ms",
-            target="en"
-        ).translate(malay_text)
-
-    except Exception as e:
-        return f"TRANSLATION ERROR: {e}"
+    return ollama_chat(
+        [
+            {
+                "role": "system",
+                "content": (
+                    "Translate Bahasa Melayu to English. "
+                    "Return ONLY the translation."
+                )
+            },
+            {
+                "role": "user",
+                "content": text
+            }
+        ],
+        temperature=0.0,
+        max_tokens=80
+    )
     
 def build_markup_prompt(student_text, active_lang):
     return f"""
