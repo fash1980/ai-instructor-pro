@@ -459,8 +459,8 @@ def translate_malay_to_english(malay_text):
             target="en"
         ).translate(malay_text)
 
-    except Exception:
-        return malay_text
+    except Exception as e:
+        return f"TRANSLATION ERROR: {e}"
     
 def build_markup_prompt(student_text, active_lang):
     return f"""
