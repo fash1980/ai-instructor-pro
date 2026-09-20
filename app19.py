@@ -2757,13 +2757,27 @@ elif st.session_state.step == "COLLECT_PART":
                             : spokenText.trim();
             
                     setTextareaValue(
-                        textarea,
-                        newText
+                    textarea,
+                    newText
+                );
+                
+                // Automatically sync speech with Streamlit
+                setTimeout(function() {
+                    const buttons = Array.from(
+                        window.parent.document.querySelectorAll("button")
                     );
-            
-                    status.innerText =
-                        "Speech added to the selected box.";
-                }};
+                
+                    const syncButton = buttons.find(function(btn) {
+                        return btn.innerText.includes("Sync Translation");
+                    });
+                
+                    if (syncButton) {
+                        syncButton.click();
+                    }
+                }, 200);
+                
+                status.innerText =
+                    "Speech added to the selected box.";
             
                 recognition.onerror = function(event) {{
                     status.innerText =
