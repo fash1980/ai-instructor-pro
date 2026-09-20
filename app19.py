@@ -2761,21 +2761,7 @@ elif st.session_state.step == "COLLECT_PART":
                     newText
                 );
                 
-                // Automatically sync speech with Streamlit
-                setTimeout(function() {{
-                    const buttons = Array.from(
-                        window.parent.document.querySelectorAll("button")
-                    );
-                
-                    const syncButton = buttons.find(function(btn) {{
-                        return btn.innerText.includes("Sync Translation");
-                    }});
-                
-                    if (syncButton) {{
-                        syncButton.click();
-                    }}
-                }}, 200);
-                
+                               
                 status.innerText =
                     "Speech added to the selected box.";
             
@@ -2839,10 +2825,7 @@ elif st.session_state.step == "COLLECT_PART":
             
             # 5. Submit button
             
-            sync_translation = st.form_submit_button(
-                "↻ Sync Translation",
-                disabled=st.session_state.is_processing
-            )
+            
 
             
             submitted = st.form_submit_button(
