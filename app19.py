@@ -432,7 +432,7 @@ def ollama_chat(messages, temperature=0.7, max_tokens=300):
         )
 
         response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
+            model="openai/gpt-oss-120b",
             messages=messages,
             temperature=temperature,
             max_tokens=max_tokens
