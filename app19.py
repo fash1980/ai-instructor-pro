@@ -2824,6 +2824,13 @@ elif st.session_state.step == "COLLECT_PART":
                 )
             
             # 5. Submit button
+            
+            sync_translation = st.form_submit_button(
+                "↻ Sync Translation",
+                disabled=st.session_state.is_processing
+            )
+
+            
             submitted = st.form_submit_button(
                 "Submit Paragraph",
                 disabled=st.session_state.is_processing
