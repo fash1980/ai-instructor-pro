@@ -2764,7 +2764,7 @@ elif st.session_state.step == "COLLECT_PART":
                                
                 status.innerText =
                     "Speech added to the selected box.";
-            
+                }};
                 recognition.onerror = function(event) {{
                     status.innerText =
                         "Microphone error: " +
