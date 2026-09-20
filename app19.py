@@ -2765,6 +2765,23 @@ elif st.session_state.step == "COLLECT_PART":
                 status.innerText =
                     "Speech added to the selected box.";
                 }};
+
+                // Auto-sync form so Python sees the new speech text
+                setTimeout(function() {{
+                    const buttons = Array.from(
+                        window.parent.document.querySelectorAll("button")
+                    );
+                
+                    const syncButton = buttons.find(function(btn) {{
+                        return btn.innerText.includes("Sync Translation");
+                    }});
+                
+                    if (syncButton) {{
+                        syncButton.click();
+                    }}
+                }}, 250);
+                
+                }};   // IMPORTANT: closes recognition.onresult
                 recognition.onerror = function(event) {{
                     status.innerText =
                         "Microphone error: " +
@@ -2826,7 +2843,10 @@ elif st.session_state.step == "COLLECT_PART":
             # 5. Submit button
             
             
-
+            sync_translation = st.form_submit_button(
+                "↻ Sync Translation",
+                disabled=st.session_state.is_processing
+            )
             
             submitted = st.form_submit_button(
                 "Submit Paragraph",
