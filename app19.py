@@ -2,7 +2,7 @@ import re
 import html
 import time
 import requests
-import textwrap
+import textwrap    
 import streamlit as st
 import pandas as pd
 from supabase import create_client
@@ -432,7 +432,7 @@ def ollama_chat(messages, temperature=0.7, max_tokens=300):
         )
 
         response = client.chat.completions.create(
-            model="openai/gpt-oss-120b",
+            model="qwen/qwen3.8-27b",
             messages=messages,
             temperature=temperature,
             max_tokens=max_tokens
