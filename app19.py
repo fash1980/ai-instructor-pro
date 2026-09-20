@@ -2354,7 +2354,7 @@ elif st.session_state.step == "COLLECT_PART":
 
     # Live refresh every 1s (DISABLE during teaching + processing)
     if HAS_AUTOREFRESH and (not st.session_state.is_processing) and (not st.session_state.is_teaching):
-        st_autorefresh(interval=1000, key=f"refresh_{st.session_state.part_i}")
+        st_autorefresh(interval=5000, key=f"refresh_{st.session_state.part_i}")
 
     # ✅ TIMER LOGIC (compute remaining safely)
     if st.session_state.part_start_time:
@@ -2826,6 +2826,7 @@ elif st.session_state.step == "COLLECT_PART":
             # 5. Submit button
             submitted = st.form_submit_button(
                 "Submit Paragraph"
+                disabled=st.session_state.is_processing
             )
             
            
