@@ -2761,11 +2761,9 @@ elif st.session_state.step == "COLLECT_PART":
                     newText
                 );
                 
-                               
                 status.innerText =
                     "Speech added to the selected box.";
-                }};
-
+                
                 // Auto-sync form so Python sees the new speech text
                 setTimeout(function() {{
                     const buttons = Array.from(
@@ -2781,7 +2779,8 @@ elif st.session_state.step == "COLLECT_PART":
                     }}
                 }}, 250);
                 
-                }};   // IMPORTANT: closes recognition.onresult
+                }};   // closes recognition.onresult
+                
                 recognition.onerror = function(event) {{
                     status.innerText =
                         "Microphone error: " +
